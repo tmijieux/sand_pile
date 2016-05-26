@@ -22,24 +22,24 @@ static uint get(uint x, uint y)
 
 static float * compute(uint iterations)
 {
-    sand_compute(sand, iterations);
+    sand_compute_n_step_synchronous(sand, iterations);
     return sand_color(sand, colors);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
     uint DIM = DIM_DEFAULT;
     uint MAX_HEIGHT = MAX_HEIGHT_DEFAULT;
 
     colors = calloc(sizeof(struct color), DIM * DIM);
     sand = sand_new(DIM);
-    sand_build_5columns(sand, MAX_HEIGHT);
+    sand_build_column(sand, MAX_HEIGHT);
     display_init(argc, argv,
 		 DIM,              // dimension ( = x = y) du tas
 		 MAX_HEIGHT,       // hauteur maximale du tas
 		 get,              // callback func
 		 compute);         // callback func
-    printf("Error: glutMainLoop() returned!\n");
+    fprintf(stderr, "Error: glutMainLoop() returned!\n");
     return EXIT_FAILURE;
 }
 

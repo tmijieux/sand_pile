@@ -1,0 +1,8 @@
+a.out
+*~
+*.o
+*.lo
+*.so
+*.a
+*.la
+sable
