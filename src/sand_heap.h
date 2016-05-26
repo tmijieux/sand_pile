@@ -43,4 +43,17 @@ static inline void sand_set(struct sand_heap * sand, uint i, uint j, uint value)
     sand->table[i][j].value = value;
 }
 
+static inline uint sand_safe_get(struct sand_heap * sand, uint i, uint j) {
+    if (i < 0 || sand_get_size(sand) <= i ||
+	j < 0 || sand_get_size(sand) <= j)
+	return 0;
+    return sand->table[i][j].value;
+}
+static inline void sand_safe_set(struct sand_heap * sand, uint i, uint j, uint value) {
+    if (i < 0 || sand_get_size(sand) <= i ||
+	j < 0 || sand_get_size(sand) <= j)
+	return;
+    sand->table[i][j].value = value;
+}
+
 #endif

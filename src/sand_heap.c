@@ -110,10 +110,11 @@ static inline void sand_compute_one_tile_synchronous(struct sand_heap * sand, ui
 
 static inline void sand_compute_one_step_synchronous(struct sand_heap * sand)
 {
-    #pragma omp for
+    #pragma omp for collapse(2)
     for (uint i = 1; i < sand->size-1; i++)
 	for (uint j = 1; j < sand->size-1; j++)
 	    sand_compute_one_tile_synchronous(sand, i, j);
+    #pragma omp single
     sand_reverse(sand);
 }
 
@@ -155,7 +156,7 @@ static inline void sand_compute_one_tile_asynchronous(struct sand_heap * sand, u
 void sand_compute_n_step_asynchronous(struct sand_heap * sand, uint nb)
 {
     #pragma omp parallel
-    #pragma omp for
+    #pragma omp for collapse(2)
     for (uint i = 1; i < sand->size-1; i++)
 	for (uint j = 1; j < sand->size-1; j++)
 	    sand_compute_one_tile_asynchronous(sand, i, j, nb);
