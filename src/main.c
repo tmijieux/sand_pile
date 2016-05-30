@@ -9,8 +9,8 @@
 #include "sand_builder.h"
 #include "colorer.h"
 
-#define DIM_DEFAULT 128
-#define MAX_HEIGHT_DEFAULT 128 * 128
+#define DIM_DEFAULT 32
+#define MAX_HEIGHT_DEFAULT DIM_DEFAULT * DIM_DEFAULT
 
 static struct color * colors;
 static struct sand_heap * sand;

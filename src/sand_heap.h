@@ -36,22 +36,18 @@ static inline uint sand_get_size(struct sand_heap * sand) {
 static inline uint sand_get_stable(struct sand_heap * sand, uint i, uint j) {
     return sand->table[i][j].stable;
 }
-static inline uint sand_get(struct sand_heap * sand, uint i, uint j) {
-    return sand->table[i][j].value;
-}
-static inline void sand_set(struct sand_heap * sand, uint i, uint j, uint value) {
-    sand->table[i][j].value = value;
+static inline int sand_is_out(struct sand_heap * sand, uint i, uint j){
+    return (i < 0 || sand_get_size(sand) <= i ||
+	    j < 0 || sand_get_size(sand) <= j);
 }
 
-static inline uint sand_safe_get(struct sand_heap * sand, uint i, uint j) {
-    if (i < 0 || sand_get_size(sand) <= i ||
-	j < 0 || sand_get_size(sand) <= j)
+static inline uint sand_get(struct sand_heap * sand, uint i, uint j) {
+    if (sand_is_out(sand, i, j))
 	return 0;
     return sand->table[i][j].value;
 }
-static inline void sand_safe_set(struct sand_heap * sand, uint i, uint j, uint value) {
-    if (i < 0 || sand_get_size(sand) <= i ||
-	j < 0 || sand_get_size(sand) <= j)
+static inline void sand_set(struct sand_heap * sand, uint i, uint j, uint value) {
+    if (sand_is_out(sand, i, j))
 	return;
     sand->table[i][j].value = value;
 }

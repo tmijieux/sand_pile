@@ -94,8 +94,11 @@ static inline void sand_set_stable(struct sand_heap * sand, uint i, uint j, int 
 /* ---------------- Compute Synchro ---------------- */
 /* ---------------- --------------- ---------------- */
 
-static inline void sand_compute_one_tile_synchronous(struct sand_heap * sand, uint i, uint j)
+static inline void sand_compute_one_tile(struct sand_heap * sand, uint i, uint j)
 {
+    if (sand_is_out(sand, i, j))
+	return;
+
     uint val = sand_get(sand, i, j) % 4;
     val += sand_get(sand, i+1, j) / 4;
     val += sand_get(sand, i-1, j) / 4;
@@ -110,10 +113,11 @@ static inline void sand_compute_one_tile_synchronous(struct sand_heap * sand, ui
 
 static inline void sand_compute_one_step_synchronous(struct sand_heap * sand)
 {
+    uint size = sand_get_size(sand);
     #pragma omp for collapse(2)
-    for (uint i = 1; i < sand->size-1; i++)
-	for (uint j = 1; j < sand->size-1; j++)
-	    sand_compute_one_tile_synchronous(sand, i, j);
+    for (uint i = 0; i < size; i++)
+	for (uint j = 0; j < size; j++)
+	    sand_compute_one_tile(sand, i, j);
     #pragma omp single
     sand_reverse(sand);
 }
@@ -129,36 +133,52 @@ void sand_compute_n_step_synchronous(struct sand_heap * sand, uint nb)
 /* ---------------- Compute Asynchro ---------------- */
 /* ---------------- ---------------- ---------------- */
 
-static inline void sand_compute_one_tile_asynchronous(struct sand_heap * sand, uint i, uint j, uint nb)
+static inline void sand_compute_diamond(struct sand_heap * sand, uint i, uint j, uint dist)
 {
-    uint size = sand_get_size(sand);
-    struct sand_heap * sandbox = sand_copy(sand);
-
-    uint val = sand_get(sand, i, j) % 4;
-    val += sand_get(sand, i+1, j) / 4;
-    val += sand_get(sand, i-1, j) / 4;
-    val += sand_get(sand, i, j+1) / 4;
-    val += sand_get(sand, i, j-1) / 4;
-
-    // TODO
-    for (uint k = 0; k < nb; k++) {
-	i + nb - k, j + k;
-	// +3,0 && +2,+1 && +1,+2 // i+2, j && i+1, j+1 // UR
-	i - nb + k, j - k;
-	// -3,0 && -2,-1 && -1,-2 // i-2, j && i-1, j-1 // BL
-	i - k, j + nb - k;
-	// 0,+3 && -1,+2 && -2,+1 // i, j+2 && i-1, j+1 // UL
-	i + k, j - nb + k;
-	// 0,-3 && +1,-2 && +2,-1 // i, j-2 && i+1, j-1 // BR
+    /*
+      Going through each "level" of the diamond except the center
+      - - 2 - -
+      - 2 1 2 -
+      2 1 x 1 2
+      - 2 1 2 -
+      - - 2 - -
+    */
+    for (uint nb = 1; nb < dist; nb++) {
+	for (uint k = 0; k < nb; k++) {
+	    sand_compute_one_tile(sand, i + nb - k, j + k); // UR
+	    sand_compute_one_tile(sand, i - nb + k, j - k); // BL
+	    sand_compute_one_tile(sand, i - k, j + nb - k); // UL
+	    sand_compute_one_tile(sand, i + k, j - nb + k); // BR
+	}
     }
+    sand_compute_one_tile(sand, i, j);
+    sand_reverse(sand);
 }
 
+static inline void sand_compute_one_tile_asynchronous(struct sand_heap * sand, uint i, uint j, uint nb)
+{
+    struct sand_heap * sandbox = sand_copy(sand);
+    for (uint k = 0; k < nb; k++)
+	sand_compute_diamond(sandbox, i, j, k);
+
+    uint stable = sand_get_stable(sandbox, i, j);
+    sand_set_stable(sand, i, j, stable);
+    uint val = sand_get(sandbox, i, j);
+    sand_set_copy(sand, i, j, val);
+
+    sand_free(sandbox);
+}
+
+/*
+  TODO: Not working yet
+ */
 void sand_compute_n_step_asynchronous(struct sand_heap * sand, uint nb)
 {
+    uint size = sand_get_size(sand);
     #pragma omp parallel
     #pragma omp for collapse(2)
-    for (uint i = 1; i < sand->size-1; i++)
-	for (uint j = 1; j < sand->size-1; j++)
+    for (uint i = 0; i < size; i++)
+	for (uint j = 0; j < size; j++)
 	    sand_compute_one_tile_asynchronous(sand, i, j, nb);
     sand_reverse(sand);
 }
