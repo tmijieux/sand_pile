@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "sand_heap.h"
+#include "sand_pile.h"
 #include "colorer.h"
 
 static struct color RED   = {255, 0,   0};
@@ -9,7 +9,7 @@ static struct color GREEN = {0,   255, 0};
 static struct color BLUE  = {0,   0,   255};
 static struct color BLACK = {0,   0,   0};
 
-float * sand_color(struct sand_heap * sand, struct color * colors)
+float *sand_color(struct sand_pile *sand, struct color *colors)
 {
     uint size = sand_get_size(sand);
     for (uint i = 0; i < size; i++) {
