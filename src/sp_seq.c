@@ -11,7 +11,7 @@ struct sp_seq {
     bool **nochange;
     bool change;
 };
-static struct sand_pile sp_seq_op;
+static struct sp_operations sp_seq_op;
 
 static inline void __pointer_swap(void *a, void *b)
 {
@@ -75,7 +75,7 @@ static sand_pile sp_seq_new(size_t size)
         sp->v2[i] = calloc(size, sizeof*sp->v2[i]);
         sp->nochange[i] = calloc(size, sizeof *sp->nochange);
     }
-    sp->super = sp_seq_op;
+    sp->super.op = sp_seq_op;
     return (sand_pile) sp;
 }
         
@@ -129,7 +129,7 @@ static int sp_seq_get_stable(sand_pile sp, uint i, uint j)
     return get_sp_seq(sp)->nochange[i][j];
 }
 
-static struct sand_pile sp_seq_op = {
+static struct sp_operations sp_seq_op = {
     .new  = sp_seq_new,
     .get = sp_seq_get,
     .set = sp_seq_set,

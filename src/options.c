@@ -21,7 +21,7 @@
 #define DIM_DEFAULT              32
 #define MAX_HEIGHT_DEFAULT       DIM_DEFAULT * DIM_DEFAULT
 
-#define SP_OP_OFFSET(field) ((uintptr_t) &((struct sand_pile*)0)->field)
+#define SP_OP_OFFSET(field) ((uintptr_t) &((struct sp_operations*)0)->field)
 #define SAND_COMPUTE_FUN_DEFAULT_OFF SP_OP_OFFSET(compute_sync)
 #define SAND_BUILD_FUN_DEFAULT_OFF   SP_OP_OFFSET(build_3)
 
@@ -103,7 +103,7 @@ static int opt_print_list(struct config *conf, int argc, char *argv[])
         printf("%s\n", l->sp_name);
         l = l->next;
     }
-    
+
     exit(EXIT_SUCCESS);
     return 0;
 }
@@ -116,11 +116,10 @@ static int opt_print_help(struct config *conf, int argc, char *argv[])
     printf("-l : print compute type list (when supported)\n");
     printf("-cs : synchronous mode\n");
     printf("-ca : asynchronous mode\n");
-    
+
     exit(EXIT_SUCCESS);
     return 0;
 }
-
 
 /* ---------------- --------------- ---------------- */
 /* ---------------- Options Handler ---------------- */

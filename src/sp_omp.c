@@ -25,7 +25,7 @@ struct sp_omp {
     uint size;
 };
 
-static struct sand_pile sp_omp_op;
+static struct sp_operations sp_omp_op;
 
 struct sp_omp *sand_new(uint size);
 struct sp_omp *sand_copy(struct sp_omp *sand);
@@ -104,7 +104,7 @@ struct sp_omp *sand_new(uint size)
     sand->size  = size;
     sand->table = sand_tile_table_new(size);
     sand->copy  = sand_tile_table_new(size);
-    sand->super = sp_omp_op;
+    sand->super.op = sp_omp_op;
     return sand;
 }
 
@@ -263,7 +263,7 @@ static void build_custom(sand_pile sp, uint height)
     sand_build_column(sp, height);
 }
 
-static struct sand_pile sp_omp_op = {
+static struct sp_operations sp_omp_op = {
     .new = (void*) sand_new,
     .get = (void*) sand_get,
     .set = (void*) sand_set,

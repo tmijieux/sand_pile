@@ -5,7 +5,7 @@ struct config {
     uint dim;
     uint max_height;
 
-    struct sand_pile *sp_op;
+    struct sp_operations *sp_op;
     off_t sp_compute_offset;
     off_t sp_build_offset;
 };

@@ -7,8 +7,7 @@ typedef unsigned int uint;
 struct sand_pile;
 typedef struct sand_pile *sand_pile;
 
-struct sand_pile {
-    
+struct sp_operations {
     sand_pile (*new)(size_t size);
     uint (*get)(sand_pile sp, uint i, uint j);
     void (*set)(sand_pile sp, uint i, uint j, uint height);
@@ -22,12 +21,15 @@ struct sand_pile {
     void (*build_1)(sand_pile sp, uint height); // ground
     void (*build_2)(sand_pile sp, uint height); // column
     void (*build_3)(sand_pile sp, uint height); // custom
+};
 
+struct sand_pile {
+    struct sp_operations op;
 };
 
 struct op_list {
     const char *sp_name;
-    struct sand_pile *op;
+    struct sp_operations *op;
     struct op_list *next;
 };
 
