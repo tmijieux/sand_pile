@@ -9,16 +9,16 @@ static struct color GREEN = {0,   255, 0};
 static struct color BLUE  = {0,   0,   255};
 static struct color BLACK = {0,   0,   0};
 
-float *sand_color(struct sand_pile *sand, struct color *colors)
+float *sand_color(sand_pile sp, struct color *colors)
 {
-    uint size = sand_get_size(sand);
+    uint size = sp->get_size(sp);
     for (uint i = 0; i < size; i++) {
 	for (uint j = 0; j < size; j++) {
-	    if (sand_get(sand, i, j) == 0)
+	    if (sp->get(sp, i, j) == 0)
 		colors[i + size * j] = BLACK;
-	    else if (sand_get(sand, i, j) < 4)
+	    else if (sp->get(sp, i, j) < 4)
 		colors[i + size * j] = GREEN;
-	    else if (sand_get_stable(sand, i, j))
+	    else if (sp->get_stable(sp, i, j))
 		colors[i + size * j] = BLUE;
 	    else
 		colors[i + size * j] = RED;

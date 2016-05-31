@@ -11,29 +11,39 @@
 #include "options.h"
 
 static struct color *colors;
-static struct sand_pile *sand;
+static sand_pile sp;
 
-static struct config * conf;
+static struct config *conf;
 
 static uint get(uint x, uint y)
 {
-    return sand_get(sand, x, y);
+    return conf->sp_op->get(sp, x, y);
 }
 
 static float *compute(uint iterations)
 {
-    conf->sand_compute_fun(sand, iterations);
-    //sand_compute_n_step_async(sand, 20);
-    return sand_color(sand, colors);
+    void (*compute)(sand_pile sp, uint nb_it);
+    compute = *(void(**)(sand_pile,uint))
+        ((char*)conf->sp_op + conf->sp_compute_offset);
+    compute(sp, iterations);
+    return sand_color(sp, colors);
+}
+
+static void build(void)
+{
+    void (*build_)(sand_pile sp, uint height);
+    build_ = *(void(**)(sand_pile,uint))
+        ((char*)conf->sp_op + conf->sp_build_offset);
+    build_(sp, conf->max_height);
 }
 
 int main(int argc, char *argv[])
 {
     conf = get_config(argc, argv);
 
-    colors = calloc(sizeof(struct color), conf->dim * conf->dim);
-    sand = sand_new(conf->dim);
-    conf->sand_build_fun(sand, conf->max_height);
+    colors = calloc(conf->dim * conf->dim, sizeof*colors);
+    sp = conf->sp_op->new(conf->dim);
+    build();
     
     display_init(&argc, argv,
 		 conf->dim,        // dimension ( = x = y) du tas

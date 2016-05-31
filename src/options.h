@@ -4,8 +4,10 @@
 struct config {
     uint dim;
     uint max_height;
-    void (*sand_compute_fun)(struct sand_pile*, uint);
-    void (*sand_build_fun)(struct sand_pile*, uint);
+
+    struct sand_pile *sp_op;
+    off_t sp_compute_offset;
+    off_t sp_build_offset;
 };
 
 struct config * get_config(int argc, char *argv[]);

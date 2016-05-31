@@ -1,63 +1,50 @@
 #ifndef SAND_PILE_H
 #define SAND_PILE_H
 
+#include <stdlib.h>
+
 typedef unsigned int uint;
+struct sand_pile;
+typedef struct sand_pile *sand_pile;
 
-/*
- * Here just for static inline functions. 
- * Do not access directly the structure.
- */
-struct sand_tile {
-    uint value;
-    int stable;
-};
-
-/*
- * Here just for static inline functions. 
- * Do not access directly the structure.
- * Use the get and set functions below.
- */
 struct sand_pile {
-    struct sand_tile **table;
-    struct sand_tile **copy;
-    uint size;
+    
+    sand_pile (*new)(size_t size);
+    uint (*get)(sand_pile sp, uint i, uint j);
+    void (*set)(sand_pile sp, uint i, uint j, uint height);
+    
+    int (*get_stable)(sand_pile sp, uint i, uint j);
+    size_t (*get_size)(sand_pile sp);
+    
+    void (*compute_sync)(sand_pile sp, uint nb_iterations);
+    void (*compute_async)(sand_pile sp, uint nb_iterations);
+    
+    void (*build_1)(sand_pile sp, uint height); // ground
+    void (*build_2)(sand_pile sp, uint height); // column
+    void (*build_3)(sand_pile sp, uint height); // custom
+
 };
 
-struct sand_pile *sand_new(uint size);
-struct sand_pile *sand_copy(struct sand_pile *sand);
-void sand_free(struct sand_pile *sand);
+struct op_list {
+    const char *sp_name;
+    struct sand_pile *op;
+    struct op_list *next;
+};
 
-void sand_compute_n_step_sync(struct sand_pile *sand, uint nb);
-void sand_compute_n_step_async(struct sand_pile *sand, uint nb);
+extern struct op_list *global_op_list;
 
-static inline uint sand_get_size(struct sand_pile *sand)
-{
-    return sand->size;
-}
+#define register_sand_pile_type(sp_name_, sp_op)                         \
+    __attribute__((constructor)) static void __init_##sp_name_##_register(void) \
+    {                                                                   \
+        static struct op_list opl;                                      \
+        struct op_list opl_ = {                                         \
+            .sp_name = #sp_name_,                                       \
+            .op = sp_op,                                                \
+            .next = global_op_list                                      \
+        };                                                              \
+        opl = opl_;                                                     \
+        global_op_list = &opl;                                          \
+    }                                                                   \
 
-static inline uint sand_get_stable(struct sand_pile *sand, uint i, uint j)
-{
-    return sand->table[i][j].stable;
-}
-
-static inline int sand_is_out(struct sand_pile *sand, uint i, uint j)
-{
-    return (i < 0 || sand_get_size(sand) <= i ||
-	    j < 0 || sand_get_size(sand) <= j);
-}
-
-static inline uint sand_get(struct sand_pile* sand, uint i, uint j)
-{
-    if (sand_is_out(sand, i, j))
-	return 0;
-    return sand->table[i][j].value;
-}
-
-static inline void sand_set(struct sand_pile* sand, uint i, uint j, uint value)
-{
-    if (sand_is_out(sand, i, j))
-	return;
-    sand->table[i][j].value = value;
-}
 
 #endif //SAND_PILE_H
