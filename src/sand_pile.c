@@ -164,7 +164,7 @@ static inline void sand_compute_one_tile_async(
 {
     struct sand_pile *sandbox = sand_copy(sand);
     for (uint k = 0; k < nb; k++)
-	sand_compute_diamond(sandbox, i, j, k);
+	sand_compute_diamond(sandbox, i, j, nb - k);
 
     uint stable = sand_get_stable(sandbox, i, j);
     sand_set_stable(sand, i, j, stable);
@@ -174,9 +174,6 @@ static inline void sand_compute_one_tile_async(
     sand_free(sandbox);
 }
 
-/*
-  TODO: Not working yet
- */
 void sand_compute_n_step_async(struct sand_pile *sand, uint nb)
 {
     uint size = sand_get_size(sand);

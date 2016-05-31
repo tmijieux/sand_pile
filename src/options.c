@@ -12,8 +12,11 @@
 #define ARG_OPT_DIM    "-d"
 #define ARG_OPT_HEIGHT "-h"
 
-#define DIM_DEFAULT 32
-#define MAX_HEIGHT_DEFAULT DIM_DEFAULT * DIM_DEFAULT
+#define ARG_OPT_COMPUTE_SYNC  "-cs"
+#define ARG_OPT_COMPUTE_ASYNC "-ca"
+
+#define DIM_DEFAULT              32
+#define MAX_HEIGHT_DEFAULT       DIM_DEFAULT * DIM_DEFAULT
 #define SAND_COMPUTE_FUN_DEFAULT sand_compute_n_step_sync
 #define SAND_BUILD_FUN_DEFAULT   sand_build_column
 
@@ -72,6 +75,20 @@ static int opt_height(struct config * conf, int argc, char * argv[])
     return 1;
 }
 
+static int opt_compute_sync(struct config * conf, int argc, char * argv[])
+{
+    OPT_ARGC_ERR(argc, 0, ARG_OPT_COMPUTE_SYNC);
+    conf->sand_compute_fun = sand_compute_n_step_sync;
+    return 0;
+}
+
+static int opt_compute_async(struct config * conf, int argc, char * argv[])
+{
+    OPT_ARGC_ERR(argc, 0, ARG_OPT_COMPUTE_ASYNC);
+    conf->sand_compute_fun = sand_compute_n_step_async;
+    return 0;
+}
+
 /* ---------------- --------------- ---------------- */
 /* ---------------- Options Handler ---------------- */
 /* ---------------- --------------- ---------------- */
@@ -102,5 +119,8 @@ static void config_init(void)
 
     ht_add_entry(ht_opt, ARG_OPT_DIM,    opt_dim);
     ht_add_entry(ht_opt, ARG_OPT_HEIGHT, opt_height);
+
+    ht_add_entry(ht_opt, ARG_OPT_COMPUTE_SYNC,  opt_compute_sync);
+    ht_add_entry(ht_opt, ARG_OPT_COMPUTE_ASYNC, opt_compute_async);
 
 }

@@ -23,6 +23,7 @@ static uint get(uint x, uint y)
 static float *compute(uint iterations)
 {
     conf->sand_compute_fun(sand, iterations);
+    //sand_compute_n_step_async(sand, 20);
     return sand_color(sand, colors);
 }
 
