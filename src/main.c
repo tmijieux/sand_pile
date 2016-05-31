@@ -8,12 +8,12 @@
 #include "sand_pile.h"
 #include "sand_builder.h"
 #include "colorer.h"
-
-#define DIM_DEFAULT 32
-#define MAX_HEIGHT_DEFAULT DIM_DEFAULT * DIM_DEFAULT
+#include "options.h"
 
 static struct color *colors;
 static struct sand_pile *sand;
+
+static struct config * conf;
 
 static uint get(uint x, uint y)
 {
@@ -22,28 +22,25 @@ static uint get(uint x, uint y)
 
 static float *compute(uint iterations)
 {
-    sand_compute_n_step_sync(sand, iterations);
+    conf->sand_compute_fun(sand, iterations);
     return sand_color(sand, colors);
 }
 
 int main(int argc, char *argv[])
 {
-    uint DIM = DIM_DEFAULT;
-    uint MAX_HEIGHT = MAX_HEIGHT_DEFAULT;
+    conf = get_config(argc, argv);
 
-    colors = calloc(sizeof(struct color), DIM * DIM);
-    sand = sand_new(DIM);
-    //sand_build_column(sand, MAX_HEIGHT);
-    sand_build_wall(sand, 100);
+    colors = calloc(sizeof(struct color), conf->dim * conf->dim);
+    sand = sand_new(conf->dim);
+    conf->sand_build_fun(sand, conf->max_height);
     
     display_init(&argc, argv,
-		 DIM,              // dimension ( = x = y) du tas
-		 MAX_HEIGHT,       // hauteur maximale du tas
+		 conf->dim,        // dimension ( = x = y) du tas
+		 conf->max_height, // hauteur maximale du tas
 		 get,              // callback func
 		 compute);         // callback func
     display_main_loop();
     
-    printf("salut\n");
     fprintf(stderr, "Error: glutMainLoop() returned!\n");
     return EXIT_FAILURE;
 }

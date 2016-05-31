@@ -12,6 +12,7 @@ LDLIBS		:= -lOpenCL -lGL -lGLU -lglut -lm -fopenmp
 endif
 
 SRC=$(wildcard *.c)
+SRC+=$(wildcard util/*.c)
 OBJ=$(SRC:.c=.o)
 
 .phony: default clean
@@ -24,4 +25,4 @@ $(PROG): $(OBJ)
 %.o: %.h
 
 clean:
-	$(RM) *~ *.o $(PROG)
+	$(RM) *~ *.o util/*.o $(PROG)
