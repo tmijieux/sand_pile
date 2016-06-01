@@ -35,18 +35,19 @@ struct op_list {
 
 extern struct op_list *global_op_list;
 
-#define register_sand_pile_type(sp_name_, sp_op)                         \
-    __attribute__((constructor)) static void __init_##sp_name_##_register(void) \
-    {                                                                   \
-        static struct op_list opl;                                      \
-        struct op_list opl_ = {                                         \
-            .sp_name = #sp_name_,                                       \
-            .op = sp_op,                                                \
-            .next = global_op_list                                      \
-        };                                                              \
-        opl = opl_;                                                     \
-        global_op_list = &opl;                                          \
-    }                                                                   \
+#define register_sand_pile_type(sp_name_, sp_op)        \
+    __attribute__((constructor))                        \
+    static void __init_##sp_name_##_register(void)      \
+    {                                                   \
+        static struct op_list opl;                      \
+        struct op_list opl_ = {                         \
+            .sp_name = #sp_name_,                       \
+            .op = sp_op,                                \
+            .next = global_op_list                      \
+        };                                              \
+        opl = opl_;                                     \
+        global_op_list = &opl;                          \
+    }                                                   \
 
 
 #endif //SAND_PILE_H

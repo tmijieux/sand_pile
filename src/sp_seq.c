@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "sand_pile.h"
 
 struct sp_seq {
@@ -42,7 +43,6 @@ static void sp_build_custom(sand_pile opaque_sp, uint height)
     struct sp_seq *sp = get_sp_seq(opaque_sp);
     size_t s = sp->size / 2;
     sp->v1[s][s] = height;
-    sp->v2[s][s] = height;
 }
 
 static void sp_build_1(sand_pile opaque_sp, uint height)
@@ -51,7 +51,7 @@ static void sp_build_1(sand_pile opaque_sp, uint height)
     for (uint i = 1; i < sp->size-1; ++i) {
         for (uint j = 1; j < sp->size-1; ++j) {
             sp->v1[i][j] = 5;
-            sp->v2[i][j] = 5;
+            sp->v2[i][j] = 0;
         }
     }
 }
@@ -73,39 +73,93 @@ static sand_pile sp_seq_new(size_t size)
     for (uint i = 0; i < size; ++i) {
         sp->v1[i] = calloc(size, sizeof*sp->v1[i]);
         sp->v2[i] = calloc(size, sizeof*sp->v2[i]);
-        sp->nochange[i] = calloc(size, sizeof *sp->nochange);
+        sp->nochange[i] = calloc(size, sizeof*sp->nochange);
     }
     sp->super.op = sp_seq_op;
     return (sand_pile) sp;
 }
-        
+
+static void sp_seq_compute_sync_1_step(struct sp_seq *sp, uint nb_iterations)
+{
+    size_t size = sp->size;
+    sp->change = false;
+    for (uint i = 1; i < size-1; i++) {
+        for (uint j = 1; j < size-1; j++) {
+            sp->nochange[i][j] = true;
+                
+            if (sp->v1[i][j] >= 4) {
+                sp->v1[i][j] -= 4;
+                sp->nochange[i][j] = false;
+                ++ sp->v2[i+1][j];
+                ++ sp->v2[i][j+1];
+                ++ sp->v2[i-1][j];
+                ++ sp->v2[i][j-1];
+                sp->change = true;
+            }
+        }
+    }
+    for (uint i = 1; i < size-1; i++) {
+        for (uint j = 1; j < size-1; j++) {
+            sp->v1[i][j] += sp->v2[i][j];
+            if (!sp->nochange[i][j] && sp->v2[i][j] == 4)
+                sp->nochange[i][j] = true;
+            else if (sp->nochange[i][j] && sp->v2[i][j] != 0)
+                sp->nochange[i][j] = false;
+                
+            sp->v2[i][j] = 0;
+        }
+    }
+}
+
 static void sp_seq_compute_sync(sand_pile sand, uint nb_iterations)
 {
     struct sp_seq *sp = (struct sp_seq*) sand;
-    uint size = sp->size;
-
+    
     for (int it = 0; it < nb_iterations; ++it) {
         if (sp->change == false) {
-            printf("C'est fini");
-            exit(EXIT_SUCCESS);
-        }
-        
-        sp->change = false;
-        for (uint i = 1; i < size-1; i++) {
-            for (uint j = 1; j < size-1; j++) {
-                if (sp->v1[i][j] >= 4) {
-                    sp->v1[i][j] -= 4;
-                    sp->v2[i][j] -= 4;
-                    
-                    sp->v2[i+1][j] += 1;
-                    sp->v2[i][j+1] += 1;
-                    sp->v2[i-1][j] += 1;
-                    sp->v2[i][j-1] += 1;
-                    sp->change = true;
-                }
+            static int announced = false;
+            if (!announced) {
+                printf("\nC'est fini\n");
+                announced = true;
             }
+            return;
         }
-        POINTER_SWAP(sp->v1, sp->v2);
+        sp_seq_compute_sync_1_step(sp, nb_iterations);
+    }
+}
+
+static void sp_seq_compute_sync2_1_step(struct sp_seq *sp, uint nb_iterations)
+{
+    uint size = sp->size;
+    for (uint i = 1; i < size-1; i++) {
+        for (uint j = 1; j < size-1; j++) {
+            uint v = sp->v1[i][j];
+            v -= 4 * (v > 3);
+            v += sp->v1[i+1][j] > 3;
+            v += sp->v1[i][j+1] > 3;
+            v += sp->v1[i-1][j] > 3;
+            v += sp->v1[i][j-1] > 3;
+            sp->nochange[i][j] = sp->v1[i][j] == v;
+            sp->v2[i][j] = v;
+        }
+    }
+    POINTER_SWAP(sp->v1, sp->v2);
+}
+
+static void sp_seq_compute_sync2(sand_pile sand, uint nb_iterations)
+{
+    struct sp_seq *sp = get_sp_seq(sand);
+    
+    for (int it = 0; it < nb_iterations; ++it) {
+        if (sp->change == false) {
+            static int announced = false;
+            if (!announced) {
+                printf("\nC'est fini\n");
+                announced = true;
+            }
+            return;
+        }
+        sp_seq_compute_sync2_1_step(sp, nb_iterations);
     }
 }
 
@@ -136,11 +190,12 @@ static struct sp_operations sp_seq_op = {
     .get_stable = sp_seq_get_stable,
     .get_size = sp_seq_get_size,
     .compute_sync = sp_seq_compute_sync,
+    .compute_async = sp_seq_compute_sync2,
+    
     .build_1 = sp_build_1,
     .build_2 = sp_build_2,
     .build_3 = sp_build_custom
 };
 
-register_sand_pile_type(sp_seq, &sp_seq_op);
+register_sand_pile_type(sp_seq_thomas, &sp_seq_op);
 
-    

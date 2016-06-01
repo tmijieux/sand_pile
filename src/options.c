@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "sand_pile.h"
 #include "sand_builder.h"
@@ -12,11 +13,13 @@
 
 #define ARG_OPT_DIM    "-d"
 #define ARG_OPT_HEIGHT "-h"
-#define ARG_OPT_HELP "--help"
+#define ARG_OPT_HELP_1 "--help"
+#define ARG_OPT_HELP_2 "-H"
 #define ARG_OPT_LIST   "-l"
-
+#define ARG_OPT_SP_TYPE   "-m"
 #define ARG_OPT_COMPUTE_SYNC  "-cs"
 #define ARG_OPT_COMPUTE_ASYNC "-ca"
+#define ARG_OPT_BUILD_TYPE "-b"
 
 #define DIM_DEFAULT              32
 #define MAX_HEIGHT_DEFAULT       DIM_DEFAULT * DIM_DEFAULT
@@ -27,7 +30,7 @@
 
 static struct hash_table * ht_opt;
 
-static void handle_options(struct config * conf, int argc, char *argv[]);
+static void handle_options(struct config *conf, int argc, char *argv[]);
 
 /* ---------------- ------ ---------------- */
 /* ---------------- Config ---------------- */
@@ -74,21 +77,21 @@ static int opt_dim(struct config * conf, int argc, char * argv[])
     return 1;
 }
 
-static int opt_height(struct config * conf, int argc, char * argv[])
+static int opt_height(struct config *conf, int argc, char *argv[])
 {
     OPT_ARGC_ERR(argc, 1, ARG_OPT_HEIGHT);
     conf->max_height = atoi(argv[0]);
     return 1;
 }
 
-static int opt_compute_sync(struct config * conf, int argc, char * argv[])
+static int opt_compute_sync(struct config *conf, int argc, char *argv[])
 {
     OPT_ARGC_ERR(argc, 0, ARG_OPT_COMPUTE_SYNC);
     conf->sp_compute_offset = SP_OP_OFFSET(compute_sync);
     return 0;
 }
 
-static int opt_compute_async(struct config * conf, int argc, char * argv[])
+static int opt_compute_async(struct config *conf, int argc, char *argv[])
 {
     OPT_ARGC_ERR(argc, 0, ARG_OPT_COMPUTE_ASYNC);
     conf->sp_compute_offset = SP_OP_OFFSET(compute_async);
@@ -105,6 +108,37 @@ static int opt_print_list(struct config *conf, int argc, char *argv[])
     }
 
     exit(EXIT_SUCCESS);
+    return 1;
+}
+
+static int opt_set_build_type(struct config *conf, int argc, char *argv[])
+{
+    OPT_ARGC_ERR(argc, 1, ARG_OPT_BUILD_TYPE);
+    int type = atoi(argv[0]);
+    switch (type) {
+    case 1: conf->sp_build_offset = SP_OP_OFFSET(build_1); break;
+    case 2: conf->sp_build_offset = SP_OP_OFFSET(build_2); break;
+    case 3: conf->sp_build_offset = SP_OP_OFFSET(build_3); break;
+    default:
+        fprintf(stderr, "invalid build type %d\n", type);
+        exit(EXIT_FAILURE);
+    }
+    return 1;
+}
+
+static int opt_set_sp_type(struct config *conf, int argc, char *argv[])
+{
+    OPT_ARGC_ERR(argc, 1, ARG_OPT_SP_TYPE);
+    struct op_list *l = global_op_list;
+    while (l != NULL) {
+        if (!strcmp(argv[0], l->sp_name)) {
+            conf->sp_op = l->op;
+            return 1;
+        }
+        l = l->next;
+    }
+    fprintf(stderr, "Invalid sand pile type '%s'\n", argv[0]);
+    exit(EXIT_FAILURE);
     return 0;
 }
 
@@ -116,6 +150,10 @@ static int opt_print_help(struct config *conf, int argc, char *argv[])
     printf("-l : print compute type list (when supported)\n");
     printf("-cs : synchronous mode\n");
     printf("-ca : asynchronous mode\n");
+    printf("-m X : select sand pile type\n\t(available type can be "
+           "retrieved with '-l' option)\n");
+    printf("-b X : select build type: 1: 5 ground; 2: 100000 tower; "
+           "3: custom (default)\n");
 
     exit(EXIT_SUCCESS);
     return 0;
@@ -125,9 +163,10 @@ static int opt_print_help(struct config *conf, int argc, char *argv[])
 /* ---------------- Options Handler ---------------- */
 /* ---------------- --------------- ---------------- */
 
-static int set_option(struct config * conf, int argc, char * argv[])
+static int set_option(struct config *conf, int argc, char *argv[])
 {
-    int (* opt)(struct config *, int, const char **) = NULL;
+    int (*opt)(struct config*, int, const char**) = NULL;
+
     ht_get_entry(ht_opt, argv[0], &opt);
     if (opt == NULL) {
 	fprintf(stderr, "Unknown option: '%s'.\n", argv[0]);
@@ -155,5 +194,8 @@ static void config_init(void)
     ht_add_entry(ht_opt, ARG_OPT_COMPUTE_SYNC,  opt_compute_sync);
     ht_add_entry(ht_opt, ARG_OPT_COMPUTE_ASYNC, opt_compute_async);
     ht_add_entry(ht_opt, ARG_OPT_LIST, opt_print_list);
-    ht_add_entry(ht_opt, ARG_OPT_HELP, opt_print_help);
+    ht_add_entry(ht_opt, ARG_OPT_HELP_1, opt_print_help);
+    ht_add_entry(ht_opt, ARG_OPT_HELP_2, opt_print_help);
+    ht_add_entry(ht_opt, ARG_OPT_SP_TYPE, opt_set_sp_type);
+    ht_add_entry(ht_opt, ARG_OPT_BUILD_TYPE, opt_set_build_type);
 }

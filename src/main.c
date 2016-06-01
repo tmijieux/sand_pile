@@ -25,6 +25,10 @@ static float *compute(uint iterations)
     void (*compute)(sand_pile sp, uint nb_it);
     compute = *(void(**)(sand_pile,uint))
         ((char*)conf->sp_op + conf->sp_compute_offset);
+    if (compute == NULL) {
+        fprintf(stderr, "Compute method not implemented\n");
+        exit(EXIT_FAILURE);
+    }
     compute(sp, iterations);
     return sand_color(sp, colors);
 }

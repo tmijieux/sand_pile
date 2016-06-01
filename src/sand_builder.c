@@ -6,6 +6,7 @@
 void sand_build_column(sand_pile sp, uint height)
 {
     uint size = sp->op.get_size(sp);
+    printf("column builder height = %u\n", height);
     sp->op.set(sp, size / 2, size / 2, height);
 }
 

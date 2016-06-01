@@ -46,8 +46,8 @@ static inline uint sand_get_stable(struct sp_omp *sand, uint i, uint j)
 
 static inline int sand_is_out(struct sp_omp *sand, uint i, uint j)
 {
-    return (i < 0 || sand_get_size(sand) <= i ||
-	    j < 0 || sand_get_size(sand) <= j);
+    return (i <= 0 || sand_get_size(sand)-1 <= i ||
+	    j <= 0 || sand_get_size(sand)-1 <= j);
 }
 
 static inline uint sand_get(struct sp_omp* sand, uint i, uint j)
@@ -278,4 +278,4 @@ static struct sp_operations sp_omp_op = {
     .compute_async = (void*) sand_compute_n_step_async,
 };
 
-register_sand_pile_type(sp_omp, &sp_omp_op);
+register_sand_pile_type(sp_omp_lucas, &sp_omp_op);
