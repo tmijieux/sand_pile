@@ -2,6 +2,7 @@
 #define SAND_PILE_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef unsigned int uint;
 struct sand_pile;
@@ -12,7 +13,7 @@ struct sp_operations {
     uint (*get)(sand_pile sp, uint i, uint j);
     void (*set)(sand_pile sp, uint i, uint j, uint height);
     
-    int (*get_stable)(sand_pile sp, uint i, uint j);
+    bool (*get_stable)(sand_pile sp, uint i, uint j);
     size_t (*get_size)(sand_pile sp);
     
     void (*compute_sync)(sand_pile sp, uint nb_iterations);
@@ -21,6 +22,8 @@ struct sp_operations {
     void (*build_1)(sand_pile sp, uint height); // ground
     void (*build_2)(sand_pile sp, uint height); // column
     void (*build_3)(sand_pile sp, uint height); // custom
+
+    const char * name;
 };
 
 struct sand_pile {
@@ -28,7 +31,6 @@ struct sand_pile {
 };
 
 struct op_list {
-    const char *sp_name;
     struct sp_operations *op;
     struct op_list *next;
 };
@@ -39,9 +41,9 @@ extern struct op_list *global_op_list;
     __attribute__((constructor))                        \
     static void __init_##sp_name_##_register(void)      \
     {                                                   \
+	(sp_op)->name = #sp_name_;			\
         static struct op_list opl;                      \
         struct op_list opl_ = {                         \
-            .sp_name = #sp_name_,                       \
             .op = sp_op,                                \
             .next = global_op_list                      \
         };                                              \

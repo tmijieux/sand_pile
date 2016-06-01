@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "sand_pile.h"
 #include "sand_builder.h"
@@ -11,12 +12,14 @@
 
 #define OPTIONS_PREFIX '-'
 
-#define ARG_OPT_DIM    "-d"
-#define ARG_OPT_HEIGHT "-h"
-#define ARG_OPT_HELP_1 "--help"
-#define ARG_OPT_HELP_2 "-H"
-#define ARG_OPT_LIST   "-l"
-#define ARG_OPT_SP_TYPE   "-m"
+#define ARG_OPT_DIM     "-d"
+#define ARG_OPT_DISPLAY "-D"
+#define ARG_OPT_HEIGHT  "-h"
+#define ARG_OPT_HELP_1  "--help"
+#define ARG_OPT_HELP_2  "-H"
+#define ARG_OPT_ITERATIONS "-i"
+#define ARG_OPT_LIST    "-l"
+#define ARG_OPT_SP_TYPE "-m"
 #define ARG_OPT_COMPUTE_SYNC  "-cs"
 #define ARG_OPT_COMPUTE_ASYNC "-ca"
 #define ARG_OPT_BUILD_TYPE "-b"
@@ -27,6 +30,8 @@
 #define SP_OP_OFFSET(field) ((uintptr_t) &((struct sp_operations*)0)->field)
 #define SAND_COMPUTE_FUN_DEFAULT_OFF SP_OP_OFFSET(compute_sync)
 #define SAND_BUILD_FUN_DEFAULT_OFF   SP_OP_OFFSET(build_3)
+
+#define ITERATIONS_DEFAULT 5
 
 static struct hash_table * ht_opt;
 
@@ -44,6 +49,9 @@ static struct config * config_new(void)
     conf->sp_op            = global_op_list ? global_op_list->op : NULL;
     conf->sp_compute_offset = SAND_COMPUTE_FUN_DEFAULT_OFF;
     conf->sp_build_offset   = SAND_BUILD_FUN_DEFAULT_OFF;
+    conf->sync              = true;
+    conf->display           = true;
+    conf->iterations        = ITERATIONS_DEFAULT;
     return conf;
 }
 
@@ -59,6 +67,20 @@ struct config *get_config(int argc, char *argv[])
     return conf;
 }
 
+void config_print(struct config * conf)
+{
+    printf("Configuration:\n"
+	   "\top:     %s\n"
+	   "\tmode:   %ssync\n"
+	   "\tdim:    %d\n"
+	   "\theight: %d\n"
+	   "\tdisplay:    %d\n"
+	   "\titerations: %d\n",
+	   conf->sp_op->name, conf->sync == true ? "" : "a", 
+	   conf->dim, conf->max_height, 
+	   conf->display, conf->iterations);
+}
+
 /* ---------------- ------- ---------------- */
 /* ---------------- Options ---------------- */
 /* ---------------- ------- ---------------- */
@@ -69,6 +91,20 @@ struct config *get_config(int argc, char *argv[])
 		"Option '%s' needs %d arguments.\n", opt, n);	\
         exit(EXIT_FAILURE);                                     \
     }
+
+static int opt_display(struct config * conf, int argc, char * argv[])
+{
+    OPT_ARGC_ERR(argc, 1, ARG_OPT_DISPLAY);
+    conf->display = (bool) atoi(argv[0]);
+    return 1;
+}
+
+static int opt_iterations(struct config * conf, int argc, char * argv[])
+{
+    OPT_ARGC_ERR(argc, 1, ARG_OPT_DISPLAY);
+    conf->iterations = atoi(argv[0]);
+    return 1;
+}
 
 static int opt_dim(struct config * conf, int argc, char * argv[])
 {
@@ -86,29 +122,28 @@ static int opt_height(struct config *conf, int argc, char *argv[])
 
 static int opt_compute_sync(struct config *conf, int argc, char *argv[])
 {
-    OPT_ARGC_ERR(argc, 0, ARG_OPT_COMPUTE_SYNC);
     conf->sp_compute_offset = SP_OP_OFFSET(compute_sync);
+    conf->sync = true;
     return 0;
 }
 
 static int opt_compute_async(struct config *conf, int argc, char *argv[])
 {
-    OPT_ARGC_ERR(argc, 0, ARG_OPT_COMPUTE_ASYNC);
     conf->sp_compute_offset = SP_OP_OFFSET(compute_async);
+    conf->sync = false;
     return 0;
 }
 
 static int opt_print_list(struct config *conf, int argc, char *argv[])
 {
-    OPT_ARGC_ERR(argc, 0, ARG_OPT_LIST);
     struct op_list *l = global_op_list;
     while (l != NULL) {
-        printf("%s\n", l->sp_name);
+        printf("%s\n", l->op->name);
         l = l->next;
     }
 
     exit(EXIT_SUCCESS);
-    return 1;
+    return 0;
 }
 
 static int opt_set_build_type(struct config *conf, int argc, char *argv[])
@@ -131,7 +166,7 @@ static int opt_set_sp_type(struct config *conf, int argc, char *argv[])
     OPT_ARGC_ERR(argc, 1, ARG_OPT_SP_TYPE);
     struct op_list *l = global_op_list;
     while (l != NULL) {
-        if (!strcmp(argv[0], l->sp_name)) {
+        if (!strcmp(argv[0], l->op->name)) {
             conf->sp_op = l->op;
             return 1;
         }
@@ -148,7 +183,9 @@ static int opt_print_help(struct config *conf, int argc, char *argv[])
     printf("-h X : set max height (when supported)\n");
     printf("-d X : set dimension (when supported)\n");
     printf("-l : print compute type list (when supported)\n");
-    printf("-cs : synchronous mode\n");
+    printf("-D X : enable or disable display mode\n");
+    printf("-i X : set iterations\n");
+    printf("-cs : synchronous mode (default)\n");
     printf("-ca : asynchronous mode\n");
     printf("-m X : select sand pile type\n\t(available type can be "
            "retrieved with '-l' option)\n");
@@ -190,6 +227,9 @@ static void config_init(void)
 
     ht_add_entry(ht_opt, ARG_OPT_DIM,    opt_dim);
     ht_add_entry(ht_opt, ARG_OPT_HEIGHT, opt_height);
+
+    ht_add_entry(ht_opt, ARG_OPT_DISPLAY,    opt_display);
+    ht_add_entry(ht_opt, ARG_OPT_ITERATIONS, opt_iterations);
 
     ht_add_entry(ht_opt, ARG_OPT_COMPUTE_SYNC,  opt_compute_sync);
     ht_add_entry(ht_opt, ARG_OPT_COMPUTE_ASYNC, opt_compute_async);

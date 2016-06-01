@@ -178,7 +178,7 @@ static size_t sp_seq_get_size(sand_pile sp)
     return get_sp_seq(sp)->size;
 }
 
-static int sp_seq_get_stable(sand_pile sp, uint i, uint j)
+static bool sp_seq_get_stable(sand_pile sp, uint i, uint j)
 {
     return get_sp_seq(sp)->nochange[i][j];
 }

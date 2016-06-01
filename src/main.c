@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include "display.h"
 #include "sand_pile.h"
@@ -44,18 +45,34 @@ static void build(void)
 int main(int argc, char *argv[])
 {
     conf = get_config(argc, argv);
+    config_print(conf);
 
     colors = calloc(conf->dim * conf->dim, sizeof*colors);
     sp = conf->sp_op->new(conf->dim);
     build();
     
-    display_init(&argc, argv,
-		 conf->dim,        // dimension ( = x = y) du tas
-		 conf->max_height, // hauteur maximale du tas
-		 get,              // callback func
-		 compute);         // callback func
-    display_main_loop();
+    if (conf->display) {
+	display_init(&argc, argv,
+		     conf->dim,        // dimension ( = x = y) du tas
+		     conf->max_height, // hauteur maximale du tas
+		     get,              // callback func
+		     compute);         // callback func
+	display_main_loop();
+	fprintf(stderr, "Error: glutMainLoop() returned!\n");
+	exit(EXIT_FAILURE);
+    } else {
+	struct timeval t1, t2;
+	gettimeofday(&t1, NULL);
+	while (true) {
+	    compute(conf->iterations);
+	    gettimeofday(&t2, NULL);
+	    uint time = ((t2.tv_sec - t1.tv_sec) * 1000000 + 
+			 (t2.tv_usec - t1.tv_usec));
+	    printf("Computation time: %d us for %d iterations\n",
+		   time, conf->iterations);
+	    t1 = t2;
+	}
+    }
     
-    fprintf(stderr, "Error: glutMainLoop() returned!\n");
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }

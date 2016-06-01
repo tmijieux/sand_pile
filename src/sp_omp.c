@@ -10,7 +10,7 @@
  */
 struct sand_tile {
     uint value;
-    int stable;
+    bool stable;
 };
 
 /*
@@ -39,7 +39,7 @@ static inline uint sand_get_size(struct sp_omp *sand)
     return sand->size;
 }
 
-static inline uint sand_get_stable(struct sp_omp *sand, uint i, uint j)
+static inline bool sand_get_stable(struct sp_omp *sand, uint i, uint j)
 {
     return sand->table[i][j].stable;
 }
@@ -149,7 +149,7 @@ static inline void sand_reverse(struct sp_omp * sand)
 }
 
 static inline void sand_set_stable(
-    struct sp_omp * sand, uint i, uint j, int stable)
+    struct sp_omp * sand, uint i, uint j, bool stable)
 {
     sand->table[i][j].stable = stable;
 }
@@ -170,7 +170,7 @@ static inline void sand_compute_one_tile(
     val += sand_get(sand, i, j+1) / 4;
     val += sand_get(sand, i, j-1) / 4;
 
-    int stable = (val == sand_get(sand, i, j));
+    bool stable = (val == sand_get(sand, i, j));
     sand_set_stable(sand, i, j, stable);
     sand_set_copy(sand, i, j, val);
 }
@@ -227,7 +227,7 @@ static inline void sand_compute_one_tile_async(
     for (uint k = 0; k < nb; k++)
 	sand_compute_diamond(sandbox, i, j, nb - k);
 
-    uint stable = sand_get_stable(sandbox, i, j);
+    bool stable = sand_get_stable(sandbox, i, j);
     sand_set_stable(sand, i, j, stable);
     uint val = sand_get(sandbox, i, j);
     sand_set_copy(sand, i, j, val);
