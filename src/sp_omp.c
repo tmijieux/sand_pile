@@ -27,12 +27,12 @@ struct sp_omp {
 
 static struct sp_operations sp_omp_op;
 
-struct sp_omp *sand_new(uint size);
-struct sp_omp *sand_copy(struct sp_omp *sand);
-void sand_free(struct sp_omp *sand);
+static struct sp_omp *sand_new(uint size);
+static struct sp_omp *sand_copy(struct sp_omp *sand);
+static void sand_free(struct sp_omp *sand);
 
-void sand_compute_n_step_sync(struct sp_omp *sand, uint nb);
-void sand_compute_n_step_async(struct sp_omp *sand, uint nb);
+static void sand_compute_n_step_sync(struct sp_omp *sand, uint nb);
+static void sand_compute_n_step_async(struct sp_omp *sand, uint nb);
 
 static inline uint sand_get_size(struct sp_omp *sand)
 {
@@ -44,7 +44,7 @@ static inline bool sand_get_stable(struct sp_omp *sand, uint i, uint j)
     return sand->table[i][j].stable;
 }
 
-static inline int sand_is_out(struct sp_omp *sand, uint i, uint j)
+static inline bool sand_is_out(struct sp_omp *sand, uint i, uint j)
 {
     return (i <= 0 || sand_get_size(sand)-1 <= i ||
 	    j <= 0 || sand_get_size(sand)-1 <= j);
@@ -98,7 +98,7 @@ static inline void sand_tile_table_free(struct sand_tile ** table, uint size)
 /* ---------------- Sand ---------------- */
 /* ---------------- ---- ---------------- */
 
-struct sp_omp *sand_new(uint size)
+static struct sp_omp *sand_new(uint size)
 {
     struct sp_omp * sand = malloc(sizeof(struct sp_omp));
     sand->size  = size;
@@ -108,7 +108,7 @@ struct sp_omp *sand_new(uint size)
     return sand;
 }
 
-struct sp_omp *sand_copy(struct sp_omp *sand)
+static struct sp_omp *sand_copy(struct sp_omp *sand)
 {
     struct sp_omp * copy = malloc(sizeof(struct sp_omp));
     copy->size  = sand->size;
@@ -117,7 +117,7 @@ struct sp_omp *sand_copy(struct sp_omp *sand)
     return copy;
 }
 
-void sand_free(struct sp_omp *sand)
+static void sand_free(struct sp_omp *sand)
 {
     if (sand == NULL)
 	return;
@@ -186,7 +186,7 @@ static inline void sand_compute_one_step_sync(struct sp_omp *sand)
     sand_reverse(sand);
 }
 
-void sand_compute_n_step_sync(struct sp_omp *sand, uint nb_iterations)
+static void sand_compute_n_step_sync(struct sp_omp *sand, uint nb_iterations)
 {
     #pragma omp parallel
     for (uint k = 0; k < nb_iterations; k++)
@@ -235,7 +235,7 @@ static inline void sand_compute_one_tile_async(
     sand_free(sandbox);
 }
 
-void sand_compute_n_step_async(struct sp_omp *sand, uint nb)
+static void sand_compute_n_step_async(struct sp_omp *sand, uint nb)
 {
     uint size = sand_get_size(sand);
     #pragma omp parallel
@@ -245,8 +245,6 @@ void sand_compute_n_step_async(struct sp_omp *sand, uint nb)
 	    sand_compute_one_tile_async(sand, i, j, nb);
     sand_reverse(sand);
 }
-
-#define MAX_HEIGHT_DEFAULT 32 * 32
 
 static void build_1(sand_pile sp, uint height)
 {
