@@ -113,6 +113,10 @@ static void build_custom(sand_pile sp, uint height)
     sand_build_column(sp, height);
 }
 
+/* ---------------- ----- ---------------- */
+/* ---------------- sp_op ---------------- */
+/* ---------------- ----- ---------------- */
+
 static struct sp_operations sp_ocl_op = {
     .new = (void*) sp_ocl_new,
     .get = (void*) sp_ocl_get,
