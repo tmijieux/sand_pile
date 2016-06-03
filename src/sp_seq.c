@@ -12,7 +12,61 @@ struct sp_seq {
     bool **nochange;
     bool change;
 };
-static struct sp_operations sp_seq_op;
+
+static struct sp_seq * sp_seq_new(size_t size);
+static sand_pile sp_seq_1_new(size_t size);
+static sand_pile sp_seq_2_new(size_t size);
+
+static uint sp_seq_get(sand_pile sp, uint i, uint j);
+static void sp_seq_set(sand_pile sp, uint i, uint j, uint height);
+
+static size_t sp_seq_get_size(sand_pile sp);
+static bool sp_seq_get_stable(sand_pile sp, uint i, uint j);
+
+static void sp_build_1(sand_pile opaque_sp, uint height);
+static void sp_build_2(sand_pile opaque_sp, uint height);
+static void sp_build_custom(sand_pile opaque_sp, uint height);
+
+static void sp_seq_compute_sync(sand_pile sand, uint nb_iterations);
+static void sp_seq_compute_sync2(sand_pile sand, uint nb_iterations);
+
+/*
+  Incomplete structure with just get and set needed.
+  Do not register it.
+ */
+static struct sp_operations sp_seq_op = {
+    .new = NULL,
+    .get = sp_seq_get,
+    .set = sp_seq_set,
+
+    .get_stable = sp_seq_get_stable,
+    .get_size = sp_seq_get_size,
+
+    .compute = NULL,
+    
+    .build_1 = sp_build_1,
+    .build_2 = sp_build_2,
+    .build_3 = sp_build_custom
+};
+
+static struct sp_operations sp_seq_1_op;
+static struct sp_operations sp_seq_2_op;
+
+__attribute__ ((constructor))
+static void register_sand_pile_seq(void)
+{
+    sp_seq_1_op = sp_seq_op;
+    sp_seq_1_op.name = "sp_seq_sync1";
+    sp_seq_1_op.new     = (void*) sp_seq_1_new;
+    sp_seq_1_op.compute = (void*) sp_seq_compute_sync;
+    register_sand_pile_type(&sp_seq_1_op);
+
+    sp_seq_2_op = sp_seq_op;
+    sp_seq_2_op.name = "sp_seq_sync2";
+    sp_seq_2_op.new     = (void*) sp_seq_2_new;
+    sp_seq_2_op.compute = (void*) sp_seq_compute_sync2;
+    register_sand_pile_type(&sp_seq_2_op);
+}
 
 static inline void __pointer_swap(void *a, void *b)
 {
@@ -61,7 +115,7 @@ static void sp_build_2(sand_pile opaque_sp, uint height)
     sp_build_custom(opaque_sp, 100000);
 }
 
-static sand_pile sp_seq_new(size_t size)
+static struct sp_seq * sp_seq_new(size_t size)
 {
     struct sp_seq *sp = malloc(sizeof*sp);
 
@@ -75,7 +129,21 @@ static sand_pile sp_seq_new(size_t size)
         sp->v2[i] = calloc(size, sizeof*sp->v2[i]);
         sp->nochange[i] = calloc(size, sizeof*sp->nochange);
     }
-    sp->super.op = sp_seq_op;
+    
+    return sp;
+}
+
+static sand_pile sp_seq_1_new(size_t size)
+{
+    struct sp_seq *sp = sp_seq_new(size);
+    sp->super.op = sp_seq_1_op;
+    return (sand_pile) sp;
+}
+
+static sand_pile sp_seq_2_new(size_t size)
+{
+    struct sp_seq *sp = sp_seq_new(size);
+    sp->super.op = sp_seq_2_op;
     return (sand_pile) sp;
 }
 
@@ -182,20 +250,4 @@ static bool sp_seq_get_stable(sand_pile sp, uint i, uint j)
 {
     return get_sp_seq(sp)->nochange[i][j];
 }
-
-static struct sp_operations sp_seq_op = {
-    .new  = sp_seq_new,
-    .get = sp_seq_get,
-    .set = sp_seq_set,
-    .get_stable = sp_seq_get_stable,
-    .get_size = sp_seq_get_size,
-    .compute_sync = sp_seq_compute_sync,
-    .compute_async = sp_seq_compute_sync2,
-    
-    .build_1 = sp_build_1,
-    .build_2 = sp_build_2,
-    .build_3 = sp_build_custom
-};
-
-register_sand_pile_type(sp_seq_thomas, &sp_seq_op);
 

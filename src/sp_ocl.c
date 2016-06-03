@@ -95,7 +95,7 @@ static void sp_ocl_compute_n_step_sync(struct sp_ocl *sand, uint nb_iterations)
 }
 
 /* ---------------- ----- ---------------- */
-/* ---------------- Other ---------------- */
+/* ---------------- Build ---------------- */
 /* ---------------- ----- ---------------- */
 
 static void build_1(sand_pile sp, uint height)
@@ -124,8 +124,12 @@ static struct sp_operations sp_ocl_op = {
     .build_2 = build_2,
     .build_3 = build_custom,
     
-    .compute_sync = (void*) sp_ocl_compute_n_step_sync,
-    .compute_async = NULL,
+    .compute = (void*) sp_ocl_compute_n_step_sync,
+    .name = "sp_ocl",
 };
 
-register_sand_pile_type(sp_ocl_lucas, &sp_ocl_op);
+__attribute__ ((constructor))
+static void register_sand_pile_seq(void)
+{
+    register_sand_pile_type(&sp_ocl_op);
+}

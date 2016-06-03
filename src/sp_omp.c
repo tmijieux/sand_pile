@@ -25,43 +25,59 @@ struct sp_omp {
     uint size;
 };
 
-static struct sp_operations sp_omp_op;
-
 static struct sp_omp *sand_new(uint size);
-static struct sp_omp *sand_copy(struct sp_omp *sand);
-static void sand_free(struct sp_omp *sand);
+static struct sp_omp *sand_sync_new(uint size);
+static struct sp_omp *sand_async_new(uint size);
+
+static inline uint sand_get(struct sp_omp* sand, uint i, uint j);
+static inline void sand_set(struct sp_omp* sand, uint i, uint j, uint value);
+
+static inline bool sand_get_stable(struct sp_omp *sand, uint i, uint j);
+static inline uint sand_get_size(struct sp_omp *sand);
 
 static void sand_compute_n_step_sync(struct sp_omp *sand, uint nb);
 static void sand_compute_n_step_async(struct sp_omp *sand, uint nb);
 
-static inline uint sand_get_size(struct sp_omp *sand)
-{
-    return sand->size;
-}
+static void build_2(sand_pile sp, uint height);
+static void build_1(sand_pile sp, uint height);
+static void build_custom(sand_pile sp, uint height);
 
-static inline bool sand_get_stable(struct sp_omp *sand, uint i, uint j)
-{
-    return sand->table[i][j].stable;
-}
+/*
+  Incomplete structure with just get and set needed.
+  Do not register it.
+ */
+static struct sp_operations sp_omp_op = {
+    .new = NULL,
+    .get = (void*) sand_get,
+    .set = (void*) sand_set,
 
-static inline bool sand_is_out(struct sp_omp *sand, uint i, uint j)
-{
-    return (i <= 0 || sand_get_size(sand)-1 <= i ||
-	    j <= 0 || sand_get_size(sand)-1 <= j);
-}
+    .get_stable = (void*) sand_get_stable,
+    .get_size   = (void*) sand_get_size,
 
-static inline uint sand_get(struct sp_omp* sand, uint i, uint j)
-{
-    if (sand_is_out(sand, i, j))
-	return 0;
-    return sand->table[i][j].value;
-}
+    .compute = NULL,    
 
-static inline void sand_set(struct sp_omp* sand, uint i, uint j, uint value)
+    .build_1 = (void*) build_1,
+    .build_2 = (void*) build_2,
+    .build_3 = (void*) build_custom,
+};
+
+static struct sp_operations sp_omp_sync_op;
+static struct sp_operations sp_omp_async_op;
+
+__attribute__ ((constructor))
+static void register_sand_pile_omp(void)
 {
-    if (sand_is_out(sand, i, j))
-	return;
-    sand->table[i][j].value = value;
+    sp_omp_sync_op = sp_omp_op;
+    sp_omp_sync_op.name = "sp_omp_sync";
+    sp_omp_sync_op.new     = (void*) sand_sync_new;
+    sp_omp_sync_op.compute = (void*) sand_compute_n_step_sync;
+    register_sand_pile_type(&sp_omp_sync_op);
+
+    sp_omp_async_op = sp_omp_op;
+    sp_omp_async_op.name = "sp_omp_async";
+    sp_omp_async_op.new     = (void*) sand_async_new;
+    sp_omp_async_op.compute = (void*) sand_compute_n_step_async;
+    register_sand_pile_type(&sp_omp_async_op);    
 }
 
 /* ---------------- --------- ---------------- */
@@ -104,7 +120,20 @@ static struct sp_omp *sand_new(uint size)
     sand->size  = size;
     sand->table = sand_tile_table_new(size);
     sand->copy  = sand_tile_table_new(size);
-    sand->super.op = sp_omp_op;
+    return sand;
+}
+
+static struct sp_omp *sand_sync_new(uint size)
+{
+    struct sp_omp * sand = sand_new(size);
+    sand->super.op = sp_omp_sync_op;
+    return sand;
+}
+
+static struct sp_omp *sand_async_new(uint size)
+{
+    struct sp_omp * sand = sand_new(size);
+    sand->super.op = sp_omp_async_op;
     return sand;
 }
 
@@ -130,6 +159,36 @@ static void sand_free(struct sp_omp *sand)
 /* ---------------- Set & Get ---------------- */
 /* ---------------- --------- ---------------- */
 
+static inline uint sand_get_size(struct sp_omp *sand)
+{
+    return sand->size;
+}
+
+static inline bool sand_get_stable(struct sp_omp *sand, uint i, uint j)
+{
+    return sand->table[i][j].stable;
+}
+
+static inline bool sand_is_out(struct sp_omp *sand, uint i, uint j)
+{
+    return (i <= 0 || sand_get_size(sand)-1 <= i ||
+	    j <= 0 || sand_get_size(sand)-1 <= j);
+}
+
+static inline uint sand_get(struct sp_omp* sand, uint i, uint j)
+{
+    if (sand_is_out(sand, i, j))
+	return 0;
+    return sand->table[i][j].value;
+}
+
+static inline void sand_set(struct sp_omp* sand, uint i, uint j, uint value)
+{
+    if (sand_is_out(sand, i, j))
+	return;
+    sand->table[i][j].value = value;
+}
+
 static inline uint sand_get_copy(struct sp_omp * sand, uint i, uint j)
 {
     return sand->copy[i][j].value;
@@ -152,6 +211,25 @@ static inline void sand_set_stable(
     struct sp_omp * sand, uint i, uint j, bool stable)
 {
     sand->table[i][j].stable = stable;
+}
+
+/* ---------------- ----- ---------------- */
+/* ---------------- Build ---------------- */
+/* ---------------- ----- ---------------- */
+
+static void build_1(sand_pile sp, uint height)
+{
+    sand_build_ground(sp, 5);
+}
+
+static void build_2(sand_pile sp, uint height)
+{
+    sand_build_column(sp, 100000);
+}
+
+static void build_custom(sand_pile sp, uint height)
+{
+    sand_build_column(sp, height);
 }
 
 /* ---------------- --------------- ---------------- */
@@ -246,34 +324,3 @@ static void sand_compute_n_step_async(struct sp_omp *sand, uint nb)
     sand_reverse(sand);
 }
 
-static void build_1(sand_pile sp, uint height)
-{
-    sand_build_ground(sp, 5);
-}
-
-static void build_2(sand_pile sp, uint height)
-{
-    sand_build_column(sp, 100000);
-}
-
-static void build_custom(sand_pile sp, uint height)
-{
-    sand_build_column(sp, height);
-}
-
-static struct sp_operations sp_omp_op = {
-    .new = (void*) sand_new,
-    .get = (void*) sand_get,
-    .set = (void*) sand_set,
-    .get_stable = (void*) sand_get_stable,
-    .get_size = (void*) sand_get_size,
-    
-    .build_1 = build_1,
-    .build_2 = build_2,
-    .build_3 = build_custom,
-    
-    .compute_sync = (void*) sand_compute_n_step_sync,
-    .compute_async = (void*) sand_compute_n_step_async,
-};
-
-register_sand_pile_type(sp_omp_lucas, &sp_omp_op);

@@ -9,7 +9,6 @@ struct config {
     off_t sp_compute_offset;
     off_t sp_build_offset;
 
-    bool sync;
     bool display;
     uint iterations;
 };
