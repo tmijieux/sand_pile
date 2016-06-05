@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include "sand_pile.h"
+
+#include "sp_seq.h"
 
 static struct sp_operations sp_seq1_op;
 
@@ -55,13 +56,17 @@ static void sp_seq_compute_sync(sand_pile sand, uint nb_iterations)
     }
 }
 
-
-__attribute__ ((constructor))
-static void register_sand_pile_seq(void)
+static sand_pile sp_seq1_new(size_t size)
 {
-    sp_seq_1_op = sp_seq_op;
-    sp_seq_1_op.name = "sp_seq_sync1";
-    sp_seq_1_op.new     = sp_seq_1_new;
-    sp_seq_1_op.compute = sp_seq_compute_sync;
-    register_sand_pile_type(&sp_seq_1_op);
+    sand_pile sp = sp_seq_op_generic.new(size);
+    sp->op = sp_seq1_op;
+    return sp;
 }
+
+inherits(sp_seq1_op, sp_seq_op_generic);
+
+override(sp_seq1_op, name, "sp_seq_sync1");
+override(sp_seq1_op, new, sp_seq1_new)
+override(sp_seq1_op, compute, sp_seq_compute_sync);
+
+register_sand_pile_type(sp_seq1_op);

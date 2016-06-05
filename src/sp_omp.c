@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "sand_pile.h"
 #include "sand_builder.h"
+#include "sp_omp.h"
 
 /*
  * Here just for static inline functions. 
@@ -13,11 +15,6 @@ struct sand_tile {
     bool stable;
 };
 
-/*
- * Here just for static inline functions. 
- * Do not access directly the structure.
- * Use the get and set functions below.
- */
 struct sp_omp {
     struct sand_pile super;
     struct sand_tile **table;
@@ -25,135 +22,10 @@ struct sp_omp {
     uint size;
 };
 
-static struct sp_omp *sand_new(uint size);
-static struct sp_omp *sand_sync_new(uint size);
-static struct sp_omp *sand_async_new(uint size);
-
-static inline uint sand_get(struct sp_omp* sand, uint i, uint j);
-static inline void sand_set(struct sp_omp* sand, uint i, uint j, uint value);
-
-static inline bool sand_get_stable(struct sp_omp *sand, uint i, uint j);
-static inline uint sand_get_size(struct sp_omp *sand);
-
-static void sand_compute_n_step_sync(struct sp_omp *sand, uint nb);
-static void sand_compute_n_step_async(struct sp_omp *sand, uint nb);
-
-static void build_2(sand_pile sp, uint height);
-static void build_1(sand_pile sp, uint height);
-static void build_custom(sand_pile sp, uint height);
-
-/*
-  Incomplete structure with just get and set needed.
-  Do not register it.
- */
-static struct sp_operations sp_omp_op = {
-    .new = NULL,
-    .get = (void*) sand_get,
-    .set = (void*) sand_set,
-
-    .get_stable = (void*) sand_get_stable,
-    .get_size   = (void*) sand_get_size,
-
-    .compute = NULL,    
-
-    .build_1 = (void*) build_1,
-    .build_2 = (void*) build_2,
-    .build_3 = (void*) build_custom,
-};
-
+static struct sp_operations sp_omp_op;
 static struct sp_operations sp_omp_sync_op;
 static struct sp_operations sp_omp_async_op;
 
-__attribute__ ((constructor))
-static void register_sand_pile_omp(void)
-{
-    sp_omp_sync_op = sp_omp_op;
-    sp_omp_sync_op.name = "sp_omp_sync";
-    sp_omp_sync_op.new     = (void*) sand_sync_new;
-    sp_omp_sync_op.compute = (void*) sand_compute_n_step_sync;
-    register_sand_pile_type(&sp_omp_sync_op);
-
-    sp_omp_async_op = sp_omp_op;
-    sp_omp_async_op.name = "sp_omp_async";
-    sp_omp_async_op.new     = (void*) sand_async_new;
-    sp_omp_async_op.compute = (void*) sand_compute_n_step_async;
-    register_sand_pile_type(&sp_omp_async_op);    
-}
-
-/* ---------------- --------- ---------------- */
-/* ---------------- Sand Tile ---------------- */
-/* ---------------- --------- ---------------- */
-
-static inline struct sand_tile **sand_tile_table_new(uint size)
-{
-    struct sand_tile ** table = calloc(sizeof(*table), size);
-    for (uint i = 0; i < size; i++)
-	table[i] = calloc(sizeof(*(table[i])), size);
-    return table;
-}
-
-static inline struct sand_tile **sand_tile_table_copy(
-    struct sand_tile **table, uint size)
-{
-    struct sand_tile ** copy = sand_tile_table_new(size);
-    for (uint i = 0; i < size; i++)
-	memcpy(copy[i], table[i], size * sizeof(*table[i]));
-    return copy;
-}
-
-static inline void sand_tile_table_free(struct sand_tile ** table, uint size)
-{
-    if (table == NULL)
-	return;
-    for (uint i = 0; i < size; i++)
-	free(table[i]);
-    free(table);
-}
-
-/* ---------------- ---- ---------------- */
-/* ---------------- Sand ---------------- */
-/* ---------------- ---- ---------------- */
-
-static struct sp_omp *sand_new(uint size)
-{
-    struct sp_omp * sand = malloc(sizeof(struct sp_omp));
-    sand->size  = size;
-    sand->table = sand_tile_table_new(size);
-    sand->copy  = sand_tile_table_new(size);
-    return sand;
-}
-
-static struct sp_omp *sand_sync_new(uint size)
-{
-    struct sp_omp * sand = sand_new(size);
-    sand->super.op = sp_omp_sync_op;
-    return sand;
-}
-
-static struct sp_omp *sand_async_new(uint size)
-{
-    struct sp_omp * sand = sand_new(size);
-    sand->super.op = sp_omp_async_op;
-    return sand;
-}
-
-static struct sp_omp *sand_copy(struct sp_omp *sand)
-{
-    struct sp_omp * copy = malloc(sizeof(struct sp_omp));
-    copy->size  = sand->size;
-    copy->table = sand_tile_table_copy(sand->table, sand->size);
-    copy->copy  = sand_tile_table_new(sand->size);
-    return copy;
-}
-
-static void sand_free(struct sp_omp *sand)
-{
-    if (sand == NULL)
-	return;
-    sand_tile_table_free(sand->table, sand_get_size(sand));
-    sand_tile_table_free(sand->copy,  sand_get_size(sand));
-    free(sand);
-}
 
 /* ---------------- --------- ---------------- */
 /* ---------------- Set & Get ---------------- */
@@ -213,6 +85,82 @@ static inline void sand_set_stable(
     sand->table[i][j].stable = stable;
 }
 
+/* ---------------- --------- ---------------- */
+/* ---------------- Sand Tile ---------------- */
+/* ---------------- --------- ---------------- */
+
+static inline struct sand_tile **sand_tile_table_new(uint size)
+{
+    struct sand_tile ** table = calloc(sizeof(*table), size);
+    for (uint i = 0; i < size; i++)
+	table[i] = calloc(sizeof(*(table[i])), size);
+    return table;
+}
+
+static inline struct sand_tile **sand_tile_table_copy(
+    struct sand_tile **table, uint size)
+{
+    struct sand_tile ** copy = sand_tile_table_new(size);
+    for (uint i = 0; i < size; i++)
+	memcpy(copy[i], table[i], size * sizeof(*table[i]));
+    return copy;
+}
+
+static inline void sand_tile_table_free(struct sand_tile ** table, uint size)
+{
+    if (table == NULL)
+	return;
+    for (uint i = 0; i < size; i++)
+	free(table[i]);
+    free(table);
+}
+
+/* ---------------- ---- ---------------- */
+/* ---------------- Sand ---------------- */
+/* ---------------- ---- ---------------- */
+
+static sand_pile sand_new(uint size)
+{
+    struct sp_omp *sand = malloc(sizeof(struct sp_omp));
+    sand->size  = size;
+    sand->table = sand_tile_table_new(size);
+    sand->copy  = sand_tile_table_new(size);
+    return get_sand_pile(sand);
+}
+
+static sand_pile sand_sync_new(size_t size)
+{
+    sand_pile sand = sand_new(size);
+    sand->op = sp_omp_sync_op;
+    return sand;
+}
+
+static sand_pile sand_async_new(size_t size)
+{
+    sand_pile sand = sand_new(size);
+    sand->op = sp_omp_async_op;
+    return sand;
+}
+
+static struct sp_omp *sand_copy(struct sp_omp *sand)
+{
+    struct sp_omp * copy = malloc(sizeof(struct sp_omp));
+    copy->size  = sand->size;
+    copy->table = sand_tile_table_copy(sand->table, sand->size);
+    copy->copy  = sand_tile_table_new(sand->size);
+    return copy;
+}
+
+static void sand_free(struct sp_omp *sand)
+{
+    if (sand == NULL)
+	return;
+    sand_tile_table_free(sand->table, sand_get_size(sand));
+    sand_tile_table_free(sand->copy,  sand_get_size(sand));
+    free(sand);
+}
+
+
 /* ---------------- ----- ---------------- */
 /* ---------------- Build ---------------- */
 /* ---------------- ----- ---------------- */
@@ -264,8 +212,9 @@ static inline void sand_compute_one_step_sync(struct sp_omp *sand)
     sand_reverse(sand);
 }
 
-static void sand_compute_n_step_sync(struct sp_omp *sand, uint nb_iterations)
+static void sand_compute_n_step_sync(sand_pile sp, uint nb_iterations)
 {
+    struct sp_omp *sand = (struct sp_omp*) sp;
     #pragma omp parallel
     for (uint k = 0; k < nb_iterations; k++)
 	sand_compute_one_step_sync(sand);
@@ -313,8 +262,9 @@ static inline void sand_compute_one_tile_async(
     sand_free(sandbox);
 }
 
-static void sand_compute_n_step_async(struct sp_omp *sand, uint nb)
+static void sand_compute_n_step_async(sand_pile sp, uint nb)
 {
+    struct sp_omp *sand = (struct sp_omp*) sp;
     uint size = sand_get_size(sand);
     #pragma omp parallel
     #pragma omp for collapse(2)
@@ -324,3 +274,27 @@ static void sand_compute_n_step_async(struct sp_omp *sand, uint nb)
     sand_reverse(sand);
 }
 
+static struct sp_operations sp_omp_op = {
+    .name = "omp_generic_noinst",
+    .get = (void*) sand_get,
+    .set = (void*) sand_set,
+
+    .get_stable = (void*) sand_get_stable,
+    .get_size   = (void*) sand_get_size,
+
+    .build_1 = (void*) build_1,
+    .build_2 = (void*) build_2,
+    .build_3 = (void*) build_custom,
+};
+
+inherits(sp_omp_sync_op, sp_omp_op);
+override(sp_omp_sync_op, name, "sp_omp_sync");
+override(sp_omp_sync_op, new, sand_sync_new);
+override(sp_omp_sync_op, compute, sand_compute_n_step_sync);
+register_sand_pile_type(sp_omp_sync_op);
+
+inherits(sp_omp_async_op, sp_omp_op);
+override(sp_omp_async_op, name, "sp_omp_async");
+override(sp_omp_async_op, new, sand_async_new);
+override(sp_omp_async_op, compute, sand_compute_n_step_async);
+register_sand_pile_type(sp_omp_async_op);

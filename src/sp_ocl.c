@@ -56,7 +56,7 @@ static inline void sp_ocl_set(struct sp_ocl* sand, uint i, uint j, uint value)
 
 struct sp_ocl *sp_ocl_new(uint size)
 {
-    struct sp_ocl * sand = malloc(sizeof(*sand));
+    struct sp_ocl *sand = malloc(sizeof*sand);
     sand->size   = size;
     sand->table  = malloc(sizeof(uint) * size * size);
     sand->copy   = malloc(sizeof(uint) * size * size);
@@ -132,8 +132,4 @@ static struct sp_operations sp_ocl_op = {
     .name = "sp_ocl",
 };
 
-__attribute__ ((constructor))
-static void register_sand_pile_seq(void)
-{
-    register_sand_pile_type(&sp_ocl_op);
-}
+register_sand_pile_type(sp_ocl_op);

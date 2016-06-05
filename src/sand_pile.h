@@ -37,24 +37,34 @@ struct op_list {
 
 extern struct op_list *global_op_list;
 
-#define register_sand_pile_type__(sp_op, sp_base)       \
-    static register_##sp_op##_init(void)                \
-    {                                                   \
-        static struct op_list opl;                      \
-        struct op_list opl_ = {                         \
-            .op = &sp_op,                               \
-            .next = global_op_list                      \
-        };                                              \
-        opl = opl_;                                     \
-        global_op_list = &opl;                          \
+#define register_sand_pile_type(sp_op)          \
+    __attribute__((constructor))                \
+    static void register_##sp_op##_init(void)   \
+    {                                           \
+        static struct op_list opl;              \
+        struct op_list opl_ = {                 \
+            .op = &sp_op,                       \
+            .next = global_op_list              \
+        };                                      \
+        opl = opl_;                             \
+        global_op_list = &opl;                  \
     }
 
+#define CONCAT(x, y) x##y
+#define CONCAT_MACRO(x, y) CONCAT(x, y) 
 
-#define register_sand_pile_type(sp_op, sp_base)    \
-    register_sand_pile_type__(sp_op, sp_base, )
+#define inherits(sp_op, sp_base)                        \
+    __attribute__((constructor))                        \
+    static void inherits__##sp_op##sp_base(void) {      \
+        sp_op = sp_base;                                \
+    }
 
-#define register_sand_pile_type_base(sp_op, sp_base)    \
-    register_sand_pile_type__(sp_op, sp_base, SET_BASE)
+#define override(sp_op, field, value)                   \
+    __attribute__((constructor))                        \
+    static void override__##sp_op##__##field(void) {    \
+        sp_op.field = value;                            \
+    }
+
 
 void sand_fprint(FILE *file, sand_pile sp);
 

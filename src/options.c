@@ -123,7 +123,6 @@ static int opt_print_list(struct config *conf, int argc, char *argv[])
         printf("%s\n", l->op->name);
         l = l->next;
     }
-
     exit(EXIT_SUCCESS);
     return 0;
 }
