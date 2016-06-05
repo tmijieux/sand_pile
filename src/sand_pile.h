@@ -23,7 +23,7 @@ struct sp_operations {
     void (*build_2)(sand_pile sp, uint height); // column
     void (*build_3)(sand_pile sp, uint height); // custom
 
-    const char * name;
+    const char *name;
 };
 
 struct sand_pile {
@@ -37,8 +37,8 @@ struct op_list {
 
 extern struct op_list *global_op_list;
 
-#define register_sand_pile_type(sp_op)          \
-    __attribute__((constructor))                \
+#define register_sand_pile_type(sp_op, order)   \
+    __attribute__((constructor(101+order) ))    \
     static void register_##sp_op##_init(void)   \
     {                                           \
         static struct op_list opl;              \
@@ -53,14 +53,14 @@ extern struct op_list *global_op_list;
 #define CONCAT(x, y) x##y
 #define CONCAT_MACRO(x, y) CONCAT(x, y) 
 
-#define inherits(sp_op, sp_base)                        \
-    __attribute__((constructor))                        \
+#define inherits(sp_op, sp_base, order)                 \
+    __attribute__((constructor(101+order) ))            \
     static void inherits__##sp_op##sp_base(void) {      \
         sp_op = sp_base;                                \
     }
 
-#define override(sp_op, field, value)                   \
-    __attribute__((constructor))                        \
+#define override(sp_op, field, value, order)            \
+    __attribute__((constructor(101+order) ))            \
     static void override__##sp_op##__##field(void) {    \
         sp_op.field = value;                            \
     }

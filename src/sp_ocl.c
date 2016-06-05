@@ -132,4 +132,4 @@ static struct sp_operations sp_ocl_op = {
     .name = "sp_ocl",
 };
 
-register_sand_pile_type(sp_ocl_op);
+register_sand_pile_type(sp_ocl_op, 1);

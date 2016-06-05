@@ -287,14 +287,14 @@ static struct sp_operations sp_omp_op = {
     .build_3 = (void*) build_custom,
 };
 
-inherits(sp_omp_sync_op, sp_omp_op);
-override(sp_omp_sync_op, name, "sp_omp_sync");
-override(sp_omp_sync_op, new, sand_sync_new);
-override(sp_omp_sync_op, compute, sand_compute_n_step_sync);
-register_sand_pile_type(sp_omp_sync_op);
+inherits(sp_omp_sync_op, sp_omp_op, 1);
+override(sp_omp_sync_op, name, "sp_omp_sync", 2);
+override(sp_omp_sync_op, new, sand_sync_new, 3);
+override(sp_omp_sync_op, compute, sand_compute_n_step_sync, 4);
+register_sand_pile_type(sp_omp_sync_op, 5);
 
-inherits(sp_omp_async_op, sp_omp_op);
-override(sp_omp_async_op, name, "sp_omp_async");
-override(sp_omp_async_op, new, sand_async_new);
-override(sp_omp_async_op, compute, sand_compute_n_step_async);
-register_sand_pile_type(sp_omp_async_op);
+inherits(sp_omp_async_op, sp_omp_op, 6);
+override(sp_omp_async_op, name, "sp_omp_async", 7);
+override(sp_omp_async_op, new, sand_async_new, 8);
+override(sp_omp_async_op, compute, sand_compute_n_step_async, 9);
+register_sand_pile_type(sp_omp_async_op, 10);

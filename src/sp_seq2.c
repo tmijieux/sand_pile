@@ -62,10 +62,8 @@ static sand_pile sp_seq2_new(size_t size)
     return sp;
 }
 
-inherits(sp_seq2_op, sp_seq_op_generic);
-
-override(sp_seq2_op, name, "sp_seq_sync2");
-override(sp_seq2_op, new, sp_seq2_new)
-override(sp_seq2_op, compute, sp_seq_compute_sync2);
-
-register_sand_pile_type(sp_seq2_op);
+inherits(sp_seq2_op, sp_seq_op_generic, 1);
+override(sp_seq2_op, name, "sp_seq_sync2", 2);
+override(sp_seq2_op, new, sp_seq2_new, 4)
+override(sp_seq2_op, compute, sp_seq_compute_sync2, 4);
+register_sand_pile_type(sp_seq2_op, 5);
