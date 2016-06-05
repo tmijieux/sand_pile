@@ -1,7 +1,9 @@
 #ifndef SAND_PILE_H
 #define SAND_PILE_H
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef unsigned int uint;
 struct sand_pile;
@@ -12,15 +14,16 @@ struct sp_operations {
     uint (*get)(sand_pile sp, uint i, uint j);
     void (*set)(sand_pile sp, uint i, uint j, uint height);
     
-    int (*get_stable)(sand_pile sp, uint i, uint j);
+    bool (*get_stable)(sand_pile sp, uint i, uint j);
     size_t (*get_size)(sand_pile sp);
     
-    void (*compute_sync)(sand_pile sp, uint nb_iterations);
-    void (*compute_async)(sand_pile sp, uint nb_iterations);
+    void (*compute)(sand_pile sp, uint nb_iterations);
     
     void (*build_1)(sand_pile sp, uint height); // ground
     void (*build_2)(sand_pile sp, uint height); // column
     void (*build_3)(sand_pile sp, uint height); // custom
+
+    const char * name;
 };
 
 struct sand_pile {
@@ -28,26 +31,31 @@ struct sand_pile {
 };
 
 struct op_list {
-    const char *sp_name;
     struct sp_operations *op;
     struct op_list *next;
 };
 
 extern struct op_list *global_op_list;
 
-#define register_sand_pile_type(sp_name_, sp_op)        \
-    __attribute__((constructor))                        \
-    static void __init_##sp_name_##_register(void)      \
+#define register_sand_pile_type__(sp_op, sp_base)       \
+    static register_##sp_op##_init(void)                \
     {                                                   \
         static struct op_list opl;                      \
         struct op_list opl_ = {                         \
-            .sp_name = #sp_name_,                       \
-            .op = sp_op,                                \
+            .op = &sp_op,                               \
             .next = global_op_list                      \
         };                                              \
         opl = opl_;                                     \
         global_op_list = &opl;                          \
-    }                                                   \
+    }
 
+
+#define register_sand_pile_type(sp_op, sp_base)    \
+    register_sand_pile_type__(sp_op, sp_base, )
+
+#define register_sand_pile_type_base(sp_op, sp_base)    \
+    register_sand_pile_type__(sp_op, sp_base, SET_BASE)
+
+void sand_fprint(FILE *file, sand_pile sp);
 
 #endif //SAND_PILE_H
