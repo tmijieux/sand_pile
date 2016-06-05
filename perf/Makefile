@@ -2,13 +2,13 @@
 rerun:
 	make -B all
 
-all: omp.pdf
+all: images
 
-omp.pdf:
+images:
 	./graph.gp
 
 clean:
-	$(RM) omp.pdf
+	$(RM) *.png
 
 clean2: clean
 	$(RM) *.data
