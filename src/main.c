@@ -12,8 +12,9 @@
 
 static struct color *colors;
 static sand_pile sp;
-
 static struct config *conf;
+void (*compute_fun)(sand_pile sp, uint nb_it);
+
 
 static uint get(uint x, uint y)
 {
@@ -22,14 +23,7 @@ static uint get(uint x, uint y)
 
 static float *compute(uint iterations)
 {
-    void (*compute)(sand_pile sp, uint nb_it);
-    compute = *(void(**)(sand_pile,uint))
-        ((char*)conf->sp_op + conf->sp_compute_offset);
-    if (compute == NULL) {
-        fprintf(stderr, "Compute method not implemented\n");
-        exit(EXIT_FAILURE);
-    }
-    compute(sp, iterations);
+    compute_fun(sp, iterations);
     return sand_color(sp, colors);
 }
 
@@ -44,7 +38,13 @@ static void build(void)
 int main(int argc, char *argv[])
 {
     conf = get_config(argc, argv);
-
+    compute_fun = *(void(**)(sand_pile,uint))
+        ((char*)conf->sp_op + conf->sp_compute_offset);
+    if (compute_fun == NULL) {
+        fprintf(stderr, "Compute method not implemented\n");
+        exit(EXIT_FAILURE);
+    }
+    
     colors = calloc(conf->dim * conf->dim, sizeof*colors);
     sp = conf->sp_op->new(conf->dim);
     build();
