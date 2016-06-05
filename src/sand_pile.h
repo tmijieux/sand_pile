@@ -61,4 +61,6 @@ static inline bool sp_op_has_null_field(struct sp_operations * sp_op)
         global_op_list = &opl;					\
     } while(0)
 
+void sand_fprint(FILE * file, sand_pile sp);
+
 #endif //SAND_PILE_H

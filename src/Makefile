@@ -2,7 +2,7 @@ ARCH    := $(shell uname -s | tr a-z A-Z)
 
 PROG	:=	sable
 
-CFLAGS	:=	-g -O0 -std=gnu99 -Wall -fopenmp
+CFLAGS	:=	-g -O3 -std=gnu99 -Wall -fopenmp
 ifeq ($(ARCH),DARWIN)
 CFLAGS	+=	-I /opt/local/include
 LDFLAGS	+=	-L /opt/local/include
@@ -26,3 +26,5 @@ $(PROG): $(OBJ)
 
 clean:
 	$(RM) *~ *.o util/*.o $(PROG)
+
+

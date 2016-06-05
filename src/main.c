@@ -11,6 +11,8 @@
 #include "colorer.h"
 #include "options.h"
 
+#define MAX_ITERATION 10000
+
 static struct color *colors;
 static sand_pile sp;
 
@@ -61,18 +63,23 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Error: glutMainLoop() returned!\n");
 	exit(EXIT_FAILURE);
     } else {
+	printf("nb_iterations time\n");
+	uint it = 0;
 	struct timeval t1, t2;
 	gettimeofday(&t1, NULL);
 	while (true) {
-	    compute(conf->iterations);
+	    conf->sp_op->compute(sp, conf->iterations);
 	    gettimeofday(&t2, NULL);
 	    uint time = ((t2.tv_sec - t1.tv_sec) * 1000000 + 
 			 (t2.tv_usec - t1.tv_usec));
-	    printf("Computation time: %d us for %d iterations\n",
-		   time, conf->iterations);
-	    t1 = t2;
+	    it += conf->iterations;
+	    printf("%u %u\n", it, time);
+	    if (it > MAX_ITERATION)
+		break;
 	}
     }
     
+    sand_fprint(stderr, sp); // separate from other data
+
     return EXIT_SUCCESS;
 }
