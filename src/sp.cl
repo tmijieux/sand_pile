@@ -20,9 +20,9 @@ compute_n_step(__global unsigned *sp1,
             value += sp1[index+size] > 3;
         }
         sp2[index] = value;
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_GLOBAL_MEM_FENCE);
         sp1[index] = sp2[index];
         //sp1[index] = value;
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_GLOBAL_MEM_FENCE);
     }
 }
