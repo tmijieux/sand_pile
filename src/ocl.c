@@ -26,7 +26,7 @@ static struct option option[] = {
 
 cl_device_type device_type = CL_DEVICE_TYPE_ALL;
 unsigned SIZE = 1024 * 1024; // ne pas utiliser
-unsigned TILE = 16;           // idem
+unsigned TILE = 16;          // idem
 
 void send_input(cl_command_queue queue, cl_mem mem, void *data, size_t size)
 {
@@ -250,7 +250,7 @@ void setup_opencl(struct sp_ocl *sp,
     
     sp->pf = detect_platform(&argc, argv);
     if (sp->pf == NULL)
-        error("No platform were found\n");
+        error("No platform was found\n");
     sp->dev = get_device(sp->pf);
     sp->context = create_context(sp->pf);
     sp->program = create_program(filename, sp->context, sp->dev);

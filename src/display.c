@@ -569,7 +569,7 @@ static void appSpecialKeyboard(int key, int x, int y)
         printf ("Setting display period to %d \n", displayPeriod);
         break;
     case GLUT_KEY_RIGHT:
-        if (nbIterations < MaxNbIterations)
+        if (nbIterations < MaxNbIterations-1)
             nbIterations++;
         printf ("Setting iteration to %d \n", nbIterations);
         break;

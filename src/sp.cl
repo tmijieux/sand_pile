@@ -22,7 +22,6 @@ compute_n_step(__global unsigned *sp1,
         sp2[index] = value;
         barrier(CLK_GLOBAL_MEM_FENCE);
         sp1[index] = sp2[index];
-        //sp1[index] = value;
         barrier(CLK_GLOBAL_MEM_FENCE);
     }
 }
