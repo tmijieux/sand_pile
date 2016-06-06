@@ -13,7 +13,9 @@ endif
 
 SRC=$(wildcard *.c)
 SRC+=$(wildcard util/*.c)
+CL_SOURCE=$(wildcard *.cl)
 OBJ=$(SRC:.c=.o)
+CFLAGS+=-DKERNEL_FILE=\"$(CL_SOURCE)\"
 
 .phony: default clean
 

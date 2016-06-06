@@ -1,24 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include <OpenCL/opencl.h>
 
-#include "sand_pile.h"
+#include "sp_ocl.h"
 #include "sand_builder.h"
 
-struct sp_ocl {
-    struct sand_pile super;
-    uint size;
-    uint *table;
-    uint *copy;
-    bool *stable;
-};
-
 static struct sp_operations sp_ocl_op;
-
-/* ---------------- ------ ---------------- */
-/* ---------------- Inline ---------------- */
-/* ---------------- ------ ---------------- */
 
 static inline uint sp_ocl_get_size(struct sp_ocl *sand)
 {
@@ -50,53 +37,58 @@ static inline void sp_ocl_set(struct sp_ocl* sand, uint i, uint j, uint value)
     sand->table[i * sp_ocl_get_size(sand) + j] = value;
 }
 
-/* ---------------- ------ ---------------- */
-/* ---------------- sp_ocl ---------------- */
-/* ---------------- ------ ---------------- */
-
 struct sp_ocl *sp_ocl_new(uint size)
 {
-    struct sp_ocl *sand = malloc(sizeof*sand);
-    sand->size   = size;
-    sand->table  = malloc(sizeof(uint) * size * size);
-    sand->copy   = malloc(sizeof(uint) * size * size);
-    sand->stable = malloc(sizeof(bool) * size * size);
-    sand->super.op = sp_ocl_op;
-    return sand;
+    struct sp_ocl *sp;
+
+    sp = malloc(sizeof*sp);
+    sp->size   = size;
+    sp->buf_size   = sizeof(uint) * size * size;
+    sp->table  = malloc(sp->buf_size);
+    sp->copy   = malloc(sp->buf_size);
+    sp->stable = malloc(sizeof(bool) * size * size);
+    sp->super.op = sp_ocl_op;
+
+    setup_opencl(sp, KERNEL_FILE, "compute_n_step");
+    return sp;
 }
 
 struct sp_ocl *sand_copy(struct sp_ocl *sand)
 {
     uint size = sp_ocl_get_size(sand);
     struct sp_ocl * copy = sp_ocl_new(size);
-    memcpy(copy->table,  sand->table,  sizeof(uint) * size * size);
-    memcpy(copy->copy,   sand->copy,   sizeof(uint) * size * size);
+    memcpy(copy->table,  sand->table,  sand->buf_size);
+    memcpy(copy->copy,   sand->copy,   sand->buf_size);
     memcpy(copy->stable, sand->stable, sizeof(bool) * size * size);
     return copy;
 }
 
-void sand_free(struct sp_ocl *sand)
+static void sp_ocl_free(sand_pile sp__)
 {
-    if (sand == NULL)
+    struct sp_ocl *sp = (struct sp_ocl*) sp__;
+    if (sp == NULL)
 	return;
-    free(sand->table);
-    free(sand->copy);
-    free(sand->stable);
-    free(sand);
+    free(sp->table);
+    free(sp->copy);
+    free(sp->stable);
+ 
+    clReleaseCommandQueue(sp->queue);
+    clReleaseKernel(sp->kernel);
+    clReleaseProgram(sp->program);
+    clReleaseContext(sp->context);
+
+    clReleaseMemObject(sp->cl_table);
+    clReleaseMemObject(sp->cl_copy);
+
+    free(sp);
 }
 
-/* ---------------- --------------- ---------------- */
-/* ---------------- Compute Synchro ---------------- */
-/* ---------------- --------------- ---------------- */
-
-static void sp_ocl_compute_n_step_sync(struct sp_ocl *sand, uint nb_iterations)
+static void sp_ocl_compute_n_step_sync(struct sp_ocl *sp, uint nb_iterations)
 {
-    
+    send_input(sp->queue, sp->cl_table, sp->table, sp->buf_size);
+    execute_kernel(sp->queue, sp->kernel, sp->dev, nb_iterations, sp->size);
+    retrieve_output(sp->queue, sp->cl_table, sp->table, sp->buf_size);
 }
-
-/* ---------------- ----- ---------------- */
-/* ---------------- Build ---------------- */
-/* ---------------- ----- ---------------- */
 
 static void build_1(sand_pile sp, uint height)
 {
@@ -108,15 +100,6 @@ static void build_2(sand_pile sp, uint height)
     sand_build_column(sp, 100000);
 }
 
-static void build_custom(sand_pile sp, uint height)
-{
-    sand_build_column(sp, height);
-}
-
-/* ---------------- ----- ---------------- */
-/* ---------------- sp_op ---------------- */
-/* ---------------- ----- ---------------- */
-
 static struct sp_operations sp_ocl_op = {
     .new = (void*) sp_ocl_new,
     .get = (void*) sp_ocl_get,
@@ -126,10 +109,11 @@ static struct sp_operations sp_ocl_op = {
     
     .build_1 = build_1,
     .build_2 = build_2,
-    .build_3 = build_custom,
+    .build_3 = sand_build_column,
     
     .compute = (void*) sp_ocl_compute_n_step_sync,
     .name = "sp_ocl",
+    .free = sp_ocl_free
 };
 
 register_sand_pile_type(sp_ocl_op, 1);

@@ -6,7 +6,6 @@
 
 struct sp_operations sp_seq_op_generic;
 
-
 static sand_pile sp_seq_new(size_t size)
 {
     struct sp_seq *sp = malloc(sizeof*sp);

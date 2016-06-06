@@ -22,6 +22,7 @@ struct sp_operations {
     void (*build_1)(sand_pile sp, uint height); // ground
     void (*build_2)(sand_pile sp, uint height); // column
     void (*build_3)(sand_pile sp, uint height); // custom
+    void (*free)(sand_pile sp);
 
     const char *name;
 };
