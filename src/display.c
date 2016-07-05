@@ -1,3 +1,11 @@
+/*
+ * Most of this file was written by Raymond Namyst.
+ * All rights reserved
+ * Copyright (C) 2016-2017 Raymond Namyst
+ *
+ * The GNU GPLv3 license may not apply to this file.
+ * Contact the original author for more information.
+ */
 
 #define _XOPEN_SOURCE 600
 
@@ -5,16 +13,16 @@
 
 #ifdef __APPLE__
 
-#include <OpenGL/gl.h>          // Header File For The OpenGL32 Library
-#include <OpenGL/glu.h>         // Header File For The GLu32 Library
-#include <GLUT/glut.h>          // Header File For The GLut Library
+#include <OpenGL/gl.h>     // Header File For The OpenGL32 Library
+#include <OpenGL/glu.h>    // Header File For The GLu32 Library
+#include <GLUT/glut.h>     // Header File For The GLut Library
 
 #else
 
 #define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>          // Header File For The OpenGL32 Library
 #include <GL/glu.h>         // Header File For The GLu32 Library
-#include <GL/freeglut.h>          // Header File For The GLut Library
+#include <GL/freeglut.h>    // Header File For The GLut Library
 
 #endif // __APPLE__
 
@@ -61,7 +69,7 @@ static GLdouble fovy, aspect, near_clip, far_clip;
 /* parameters for gluPerspective() */
 static GLfloat near;
 
-static GLdouble center[3];          /* position of look reference point */
+static GLdouble center[3];  /* position of look reference point */
 static struct camera *camera;
 
 static unsigned cam_auto_rotate_mode = 0;
